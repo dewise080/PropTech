@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict zydufOkrPBd8BcfMvwxOWeUgTkNeQfdqL6DQR8aEBxqx5C3IR4ZqsM1UZc1wuc6
+\restrict fvRdvgBexWA4IVogY9v5h0XG0vKYRJYx31h96BSsbwxkaA9JcgUq98XrlrpNYaX
 
 -- Dumped from database version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.10 (Ubuntu 16.10-0ubuntu0.24.04.1)
@@ -709,6 +709,7 @@ CREATE TABLE public.listings_nearbyamenityconfig (
     enable_parks boolean NOT NULL,
     enable_schools boolean NOT NULL,
     updated_at timestamp with time zone NOT NULL,
+    enable_minibus boolean NOT NULL,
     CONSTRAINT listings_nearbyamenityconfig_max_results_check CHECK ((max_results >= 0)),
     CONSTRAINT listings_nearbyamenityconfig_radius_m_check CHECK ((radius_m >= 0))
 );
@@ -1169,6 +1170,7 @@ COPY public.django_admin_log (id, action_time, object_id, object_repr, action_fl
 33	2025-11-21 07:21:32.457408+03	1	Map Generation Settings	2	[]	20	1
 34	2025-11-21 07:28:58.436862+03	1	Map Generation Settings	2	[{"changed": {"fields": ["Enable metro", "Radius metro", "Radius metrobus", "Radius bus", "Radius grocery", "Radius minibus", "Radius malls", "Radius parks", "Radius taxi", "Radius bicycle"]}}]	20	1
 35	2025-12-03 06:58:03.679995+03	1	Nearby Amenity Settings	1	[{"added": {}}]	24	1
+36	2025-12-03 10:53:12.590403+03	1	Nearby Amenity Settings	2	[{"changed": {"fields": ["Max results"]}}]	24	1
 \.
 
 
@@ -1246,6 +1248,7 @@ COPY public.django_migrations (id, app, name, applied) FROM stdin;
 35	transit_layer	0004_taxistand	2025-11-21 07:05:20.405676+03
 36	listings	0010_externallisting_nearest_distances_m	2025-11-21 07:51:39.903979+03
 37	listings	0011_nearbyamenityconfig	2025-12-03 06:57:32.493357+03
+38	listings	0012_nearbyamenityconfig_enable_minibus	2025-12-03 10:19:31.799633+03
 \.
 
 
@@ -1430,8 +1433,8 @@ COPY public.listings_mapgenerationconfig (id, enable_metro, enable_metrobus, ena
 -- Data for Name: listings_nearbyamenityconfig; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.listings_nearbyamenityconfig (id, radius_m, max_results, enable_metro, enable_metrobus, enable_bus, enable_taxi, enable_grocery, enable_clothing, enable_malls, enable_parks, enable_schools, updated_at) FROM stdin;
-1	5000	5	t	t	t	t	t	t	t	t	t	2025-12-03 06:58:03.679149+03
+COPY public.listings_nearbyamenityconfig (id, radius_m, max_results, enable_metro, enable_metrobus, enable_bus, enable_taxi, enable_grocery, enable_clothing, enable_malls, enable_parks, enable_schools, updated_at, enable_minibus) FROM stdin;
+1	5000	12	t	t	t	t	t	t	t	t	t	2025-12-03 10:53:12.589511+03	t
 \.
 
 
@@ -21357,7 +21360,7 @@ SELECT pg_catalog.setval('public.auth_user_user_permissions_id_seq', 1, false);
 -- Name: django_admin_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.django_admin_log_id_seq', 35, true);
+SELECT pg_catalog.setval('public.django_admin_log_id_seq', 36, true);
 
 
 --
@@ -21371,7 +21374,7 @@ SELECT pg_catalog.setval('public.django_content_type_id_seq', 24, true);
 -- Name: django_migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.django_migrations_id_seq', 37, true);
+SELECT pg_catalog.setval('public.django_migrations_id_seq', 38, true);
 
 
 --
@@ -22170,5 +22173,5 @@ ALTER TABLE ONLY public.listings_listingimage
 -- PostgreSQL database dump complete
 --
 
-\unrestrict zydufOkrPBd8BcfMvwxOWeUgTkNeQfdqL6DQR8aEBxqx5C3IR4ZqsM1UZc1wuc6
+\unrestrict fvRdvgBexWA4IVogY9v5h0XG0vKYRJYx31h96BSsbwxkaA9JcgUq98XrlrpNYaX
 
