@@ -10,7 +10,7 @@ from django.contrib.gis.geos import GEOSGeometry, Point
 
 
 DEFAULT_MINIBUS_PATHS = [
-    Path("Minibus Lines Data"),
+    Path("Minibus Lines Data"),  # Direct file, not directory
     Path("data/minibus_lines.geojson"),
 ]
 

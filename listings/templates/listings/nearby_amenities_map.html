@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nearby Amenities Map - {{ query }}</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
+    <!-- Font Awesome 5 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    
+    <!-- Ubuntu Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            overflow: hidden;
+            font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .legend-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+            box-shadow: 0 0 3px rgba(0,0,0,0.3);
+        }
+        
+        .info-header {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .info-header h1 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .info-header p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .leaflet-popup-content {
+            margin: 10px;
+        }
+        
+        .popup-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .popup-info {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .popup-distance {
+            font-weight: 600;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-header">
+        <h1>📍 {{ query }}</h1>
+        <p>Showing amenities within {{ radius_m }}m radius</p>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-title">Amenities</div>
+        <div class="legend-item">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Istanbul_Metro_Logo.svg" alt="Metro" style="width: 20px; height: 20px; margin-right: 8px;">
+            <span>Metro Stations</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e67e22;"></div>
+            <span>Metrobus Stations</span>
+        </div>
+        <div class="legend-item">
+            <div style="background-color: #3498db; width: 20px; height: 20px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-bus" style="color: white; font-size: 10px;"></i></div>
+            <span>Bus Stops</span>
+        </div>
+        <div class="legend-item">
+            <div style="background-color: #f39c12; width: 20px; height: 20px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-taxi" style="color: white; font-size: 10px;"></i></div>
+            <span>Taxi Stands</span>
+        </div>
+        <div class="legend-item">
+            <div style="width: 20px; height: 3px; background-color: #1abc9c; margin-right: 8px; border-radius: 2px;"></div>
+            <span>Minibus Lines</span>
+        </div>
+        <div class="legend-item">
+            <div style="background-color: #27ae60; width: 20px; height: 20px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-shopping-cart" style="color: white; font-size: 10px;"></i></div>
+            <span>Grocery Stores</span>
+        </div>
+        <div class="legend-item">
+            <div style="background-color: #9b59b6; width: 20px; height: 20px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-shopping-cart" style="color: white; font-size: 10px;"></i></div>
+            <span>Clothing Stores</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e91e63;"></div>
+            <span>Shopping Malls</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #16a085;"></div>
+            <span>Parks</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #34495e;"></div>
+            <span>Schools</span>
+        </div>
+        <div class="legend-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+            <img src="https://explore.lotfinity.tech/static/img/logo22.gif" alt="Lotfinity" style="width: 20px; height: 20px; margin-right: 8px; border-radius: 50%; object-fit: cover;">
+            <span><a href="https://explore.lotfinity.tech/" target="_blank" rel="noopener noreferrer" style="color: #620c71ff; text-decoration: none; font-weight: 600;">Lotfinity - 2025</a></span>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <script>
+        // Map configuration
+        const centerLat = {{ center_lat }};
+        const centerLng = {{ center_lng }};
+        const radiusM = {{ radius_m }};
+        const amenities = {{ amenities_json|safe }};
+        
+        // Initialize map
+        const map = L.map('map').setView([centerLat, centerLng], 15);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add center marker with Font Awesome icon
+        const centerIcon = L.divIcon({
+            html: '<div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;"><i class="fas fa-map-marker-alt" style="font-size: 40px; color: #e23116ff; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></div>',
+            className: '',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+        });
+        
+        L.marker([centerLat, centerLng], { icon: centerIcon })
+            .addTo(map)
+            .bindPopup('<div class="popup-title">📍 Your Location</div><div class="popup-info">{{ query }}</div>');
+        
+        // Add radius circle
+        L.circle([centerLat, centerLng], {
+            radius: radiusM,
+            color: '#667eea',
+            fillColor: '#667eea',
+            fillOpacity: 0.1,
+            weight: 2
+        }).addTo(map);
+        
+        // Color mapping for different amenity types
+        const colors = {
+            metro: '#e74c3c',
+            metrobus: '#e67e22',
+            bus: '#3498db',
+            taxi: '#f39c12',
+            minibus: '#1abc9c',
+            grocery: '#27ae60',
+            clothing: '#9b59b6',
+            malls: '#e91e63',
+            parks: '#16a085',
+            schools: '#34495e'
+        };
+        
+        // Create metro station icon using Istanbul Metro logo
+        function createMetroIcon() {
+            return L.icon({
+                iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Istanbul_Metro_Logo.svg',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -12],
+                className: 'metro-icon',
+                crossOrigin: 'anonymous'
+            });
+        }
+        
+        // Icon mapping for different amenity types
+        const icons = {
+            metro: '🚇',
+            metrobus: '🚌',
+            bus: '🚏',
+            taxi: '🚕',
+            minibus: '🚐',
+            grocery: '🛒',
+            clothing: '👕',
+            malls: '🏬',
+            parks: '🌳',
+            schools: '🏫'
+        };
+        
+        // Add amenities to map
+        Object.keys(amenities).forEach(type => {
+            const items = amenities[type];
+            const color = colors[type] || '#95a5a6';
+            const icon = icons[type] || '📍';
+            
+            items.forEach(item => {
+                let marker;
+                const distanceKm = (item.distance_m / 1000).toFixed(2);
+                const distanceM = Math.round(item.distance_m);
+                const distanceText = distanceM < 1000 ? `${distanceM}m` : `${distanceKm}km`;
+                
+                // Use special icons for different amenity types
+                if (type === 'metro') {
+                    marker = L.marker([item.lat, item.lng], { icon: createMetroIcon() });
+                } else if (type === 'bus' || type === 'metrobus') {
+                    const markerIcon = L.divIcon({
+                        html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-bus" style="color: white; font-size: 14px;"></i></div>`,
+                        className: '',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    marker = L.marker([item.lat, item.lng], { icon: markerIcon });
+                } else if (type === 'minibus') {
+                    // Minibus lines are LineStrings, render them as paths (not point markers)
+                    if (item.geometry) {
+                        const lineStyle = {
+                            color: color,
+                            weight: 8,
+                            opacity: 0.9,
+                            dashArray: '10, 5'
+                        };
+                        const line = L.geoJSON(item.geometry, { 
+                            style: lineStyle,
+                            onEachFeature: function(feature, layer) {
+                                layer.bindPopup(`
+                                    <div class="popup-title">${icon} ${item.name}</div>
+                                    <div class="popup-info">Type: <strong>Minibus Line</strong></div>
+                                    <div class="popup-info">Route ID: ${item.id || 'N/A'}</div>
+                                `);
+                            }
+                        });
+                        line.addTo(map);
+                    }
+                    return; // Skip the regular marker creation below
+                } else if (type === 'taxi') {
+                    const markerIcon = L.divIcon({
+                        html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-taxi" style="color: white; font-size: 14px;"></i></div>`,
+                        className: '',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    marker = L.marker([item.lat, item.lng], { icon: markerIcon });
+                } else if (type === 'grocery' || type === 'clothing') {
+                    const markerIcon = L.divIcon({
+                        html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-shopping-cart" style="color: white; font-size: 14px;"></i></div>`,
+                        className: '',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    marker = L.marker([item.lat, item.lng], { icon: markerIcon });
+                } else {
+                    const markerIcon = L.divIcon({
+                        html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px;">${icon}</div>`,
+                        className: '',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+                    marker = L.marker([item.lat, item.lng], { icon: markerIcon });
+                }
+                
+                marker.addTo(map)
+                    .bindPopup(`
+                        <div class="popup-title">${icon} ${item.name}</div>
+                        <div class="popup-info">Type: <strong>${type.charAt(0).toUpperCase() + type.slice(1)}</strong></div>
+                        <div class="popup-info">Distance: <span class="popup-distance">${distanceText}</span></div>
+                    `);
+            });
+        });
+        
+        // Fit bounds to show all markers
+        setTimeout(() => {
+            map.fitBounds([
+                [centerLat - (radiusM / 111320), centerLng - (radiusM / (111320 * Math.cos(centerLat * Math.PI / 180)))],
+                [centerLat + (radiusM / 111320), centerLng + (radiusM / (111320 * Math.cos(centerLat * Math.PI / 180)))]
+            ], { padding: [50, 50] });
+        }, 100);
+    </script>
+</body>
+</html>

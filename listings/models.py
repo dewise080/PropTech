@@ -384,6 +384,7 @@ class NearbyAmenityConfig(models.Model):
     enable_metrobus = models.BooleanField(default=True)
     enable_bus = models.BooleanField(default=True)
     enable_taxi = models.BooleanField(default=True)
+    enable_minibus = models.BooleanField(default=True)
     enable_grocery = models.BooleanField(default=True)
     enable_clothing = models.BooleanField(default=True)
     enable_malls = models.BooleanField(default=True)

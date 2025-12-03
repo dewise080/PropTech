@@ -662,6 +662,10 @@ def nearby_amenities(request: HttpRequest) -> JsonResponse:
         results["bus"] = _serialize_nearby_queryset(BusStop, point, radius_m, max_results)
     if config.enable_taxi:
         results["taxi"] = _serialize_nearby_queryset(TaxiStand, point, radius_m, max_results)
+    if config.enable_minibus:
+        from tools.nearby_enrichment.minibus import nearby_minibus_segments
+        minibus_data = nearby_minibus_segments(lon=point.x, lat=point.y, radius_m=radius_m, limit=max_results)
+        results["minibus"] = minibus_data
     if config.enable_grocery:
         results["grocery"] = _serialize_nearby_queryset(Grocery, point, radius_m, max_results)
     if config.enable_clothing:
@@ -683,3 +687,67 @@ def nearby_amenities(request: HttpRequest) -> JsonResponse:
     }
 
     return JsonResponse(response_data)
+
+
+@require_http_methods(["GET"])
+def nearby_amenities_map(request: HttpRequest) -> HttpResponse:
+    """
+    Generate a standalone shareable HTML map showing nearby amenities.
+    Accepts same parameters as nearby_amenities_api.
+    Returns an HTML page that can be saved as a static file.
+    """
+    raw_input = request.GET.get("location") or request.GET.get("q")
+    
+    if not raw_input:
+        return HttpResponse("Provide a location via 'location' or 'q' parameter.", status=400)
+
+    try:
+        point, source = _extract_point_from_input(raw_input)
+    except ImportError as exc:
+        return HttpResponse(f"Error: {str(exc)}", status=500)
+    except ValueError as exc:
+        return HttpResponse(f"Error: {str(exc)}", status=400)
+
+    config = NearbyAmenityConfig.get_config()
+    radius_m = _coerce_positive_int(request.GET.get("radius_m"), config.radius_m)
+    max_results = _coerce_positive_int(request.GET.get("max_results"), config.max_results)
+
+    logger.info(
+        f"[NEARBY_MAP] input='{raw_input}' | source={source} | radius={radius_m}m | max={max_results}"
+    )
+
+    # Collect all amenities
+    amenities_data = {}
+    if config.enable_metro:
+        amenities_data["metro"] = _serialize_nearby_queryset(MetroStation, point, radius_m, max_results)
+    if config.enable_metrobus:
+        amenities_data["metrobus"] = _serialize_nearby_queryset(MetrobusStation, point, radius_m, max_results)
+    if config.enable_bus:
+        amenities_data["bus"] = _serialize_nearby_queryset(BusStop, point, radius_m, max_results)
+    if config.enable_taxi:
+        amenities_data["taxi"] = _serialize_nearby_queryset(TaxiStand, point, radius_m, max_results)
+    if config.enable_minibus:
+        from tools.nearby_enrichment.minibus import nearby_minibus_segments
+        minibus_data = nearby_minibus_segments(lon=point.x, lat=point.y, radius_m=radius_m, limit=max_results)
+        # Convert to match the standard format
+        amenities_data["minibus"] = [{"id": item["id"], "name": item["name"], "geometry": item["geometry"]} for item in minibus_data]
+    if config.enable_grocery:
+        amenities_data["grocery"] = _serialize_nearby_queryset(Grocery, point, radius_m, max_results)
+    if config.enable_clothing:
+        amenities_data["clothing"] = _serialize_nearby_queryset(Clothing, point, radius_m, max_results)
+    if config.enable_malls:
+        amenities_data["malls"] = _serialize_nearby_queryset(Mall, point, radius_m, max_results)
+    if config.enable_parks:
+        amenities_data["parks"] = _serialize_nearby_queryset(Park, point, radius_m, max_results)
+    if config.enable_schools:
+        amenities_data["schools"] = _serialize_nearby_queryset(School, point, radius_m, max_results)
+
+    context = {
+        "query": raw_input,
+        "center_lat": point.y,
+        "center_lng": point.x,
+        "radius_m": radius_m,
+        "amenities_json": json.dumps(amenities_data, ensure_ascii=False),
+    }
+
+    return render(request, "listings/nearby_amenities_map.html", context)
