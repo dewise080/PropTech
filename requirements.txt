@@ -1,0 +1,16 @@
+asgiref
+certifi
+charset-normalizer
+Django
+django-distill
+django-extensions
+django-leaflet
+idna
+overpy
+pillow
+psycopg2-binary
+requests
+sqlparse
+typing_extensions
+urllib3
+geopy

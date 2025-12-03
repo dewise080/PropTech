@@ -1,0 +1,412 @@
+from django.contrib.gis.db import models
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class DisplayConfig(models.Model):
+    """
+    Singleton model to control how many entries are displayed on the frontend.
+    Only one instance should exist.
+    """
+    max_listings = models.PositiveIntegerField(
+        default=100,
+        help_text="Maximum number of listings to display (default: 100)"
+    )
+    # Closest stores per listing to pre-compute and cache
+    closest_grocery_stores = models.PositiveIntegerField(
+        default=20,
+        help_text="Number of closest grocery stores to pre-compute per listing (default: 20)"
+    )
+    closest_clothing_stores = models.PositiveIntegerField(
+        default=20,
+        help_text="Number of closest clothing stores to pre-compute per listing (default: 20)"
+    )
+    # Legacy display counts (for filtering on frontend if needed)
+    max_grocery_stores = models.PositiveIntegerField(
+        default=200,
+        help_text="Maximum number of grocery stores to display (default: 200)"
+    )
+    max_clothing_stores = models.PositiveIntegerField(
+        default=200,
+        help_text="Maximum number of clothing stores to display (default: 200)"
+    )
+    max_metro_stations = models.PositiveIntegerField(
+        default=100,
+        help_text="Maximum number of metro stations to display (default: 100)"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Display Configuration"
+        verbose_name_plural = "Display Configuration"
+
+    def __str__(self) -> str:  # pragma: no cover
+        return "Display Settings (Singleton)"
+
+    def save(self, *args, **kwargs):
+        # Ensure only one instance exists
+        self.pk = 1
+        logger.info(
+            f"[CONFIG_SAVED] Updated display limits - "
+            f"Listings: {self.max_listings}, "
+            f"Grocery: {self.max_grocery_stores}, "
+            f"Clothing: {self.max_clothing_stores}, "
+            f"Metro: {self.max_metro_stations}"
+        )
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Prevent deletion of singleton
+        logger.warning("[CONFIG_DELETE_ATTEMPTED] Deletion of DisplayConfig prevented (singleton protection)")
+        pass
+
+    @classmethod
+    def get_config(cls):
+        """Get or create the singleton configuration instance."""
+        config, created = cls.objects.get_or_create(pk=1)
+        if created:
+            logger.info("[CONFIG_CREATED] New DisplayConfig created with default values")
+        else:
+            logger.debug(
+                f"[CONFIG_RETRIEVED] Current limits - "
+                f"Listings: {config.max_listings}, "
+                f"Grocery: {config.max_grocery_stores}, "
+                f"Clothing: {config.max_clothing_stores}, "
+                f"Metro: {config.max_metro_stations}"
+            )
+        return config
+
+
+
+class Listing(models.Model):
+    title = models.CharField(max_length=255)
+    price = models.BigIntegerField()
+    size_sqm = models.PositiveIntegerField()
+    # Use geography=True to get meter-based distances directly
+    location = models.PointField(srid=4326, geography=True)
+    
+    # Building image/photo - exterior building photo (primary image)
+    image = models.ImageField(upload_to='listings/', null=True, blank=True, help_text="Primary exterior building photo")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.title} - {self.price} TL"
+
+    def get_primary_image(self):
+        """Get the primary image (first uploaded or marked as primary)."""
+        primary_image = self.images.filter(is_primary=True).first()
+        if primary_image:
+            return primary_image.image
+        return self.images.first().image if self.images.exists() else None
+
+
+class ListingImage(models.Model):
+    """
+    Model to store multiple images for each listing.
+    Allows for gallery functionality and multiple property photos.
+    """
+    listing = models.ForeignKey(
+        Listing,
+        on_delete=models.CASCADE,
+        related_name='images',
+        help_text="The listing this image belongs to"
+    )
+    
+    image = models.ImageField(
+        upload_to='listings/images/',
+        help_text="Property image (interior, exterior, floor plan, etc.)"
+    )
+    
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Optional title/description of the image (e.g., 'Living Room', 'Master Bedroom')"
+    )
+    
+    description = models.TextField(
+        blank=True,
+        help_text="Optional longer description of the image"
+    )
+    
+    # Ordering within listing's gallery
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order in which to display images in the gallery"
+    )
+    
+    # Mark one image as primary/featured
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="Use this image as the primary thumbnail for the listing"
+    )
+    
+    # Image metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    uploaded_by = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Username or source of the upload"
+    )
+    
+    class Meta:
+        ordering = ['order', 'created_at']
+        verbose_name = "Listing Image"
+        verbose_name_plural = "Listing Images"
+        indexes = [
+            models.Index(fields=['listing', 'order']),
+            models.Index(fields=['is_primary']),
+        ]
+    
+    def __str__(self) -> str:  # pragma: no cover
+        title = self.title or "Untitled"
+        return f"{self.listing.title} - {title}"
+    
+    def save(self, *args, **kwargs):
+        """Ensure only one image per listing is marked as primary."""
+        if self.is_primary:
+            # Mark all other images for this listing as non-primary
+            ListingImage.objects.filter(
+                listing=self.listing,
+                is_primary=True
+            ).exclude(pk=self.pk).update(is_primary=False)
+        
+        # If this is the first image for the listing, make it primary
+        if not ListingImage.objects.filter(listing=self.listing).exists():
+            self.is_primary = True
+        
+        logger.info(
+            f"[IMAGE_SAVED] {self.listing.title} - {self.title or 'Untitled'} "
+            f"(primary: {self.is_primary}, order: {self.order})"
+        )
+        super().save(*args, **kwargs)
+
+
+class ClosestStoresCache(models.Model):
+    """
+    Cache model to store pre-computed closest stores for each listing.
+    This avoids computing distances on every request and improves frontend performance.
+    """
+    listing = models.OneToOneField(Listing, on_delete=models.CASCADE, related_name="closest_stores_cache")
+    
+    # JSON storage for closest stores with their distances
+    # Format: {"grocery": [{"id": 1, "name": "Store A", "distance_m": 500}, ...], "clothing": [...]}
+    closest_grocery_ids = models.JSONField(
+        default=list,
+        help_text="List of closest grocery store IDs ordered by distance"
+    )
+    closest_clothing_ids = models.JSONField(
+        default=list,
+        help_text="List of closest clothing store IDs ordered by distance"
+    )
+    
+    # Track when this was last computed
+    computed_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Closest Stores Cache"
+        verbose_name_plural = "Closest Stores Cache"
+        indexes = [
+            models.Index(fields=['listing']),
+            models.Index(fields=['updated_at']),
+        ]
+    
+    def __str__(self) -> str:  # pragma: no cover
+        return f"Cache for Listing {self.listing.id}: {len(self.closest_grocery_ids)} grocery, {len(self.closest_clothing_ids)} clothing"
+
+
+class ExternalListing(models.Model):
+    """
+    Snapshot of listings as they come from external APIs (source-of-truth mirror).
+
+    Purpose:
+    - Persist raw fields for longitudinal analysis (trends, pricing, demand)
+    - Decouple external schema from internal display models
+    - Provide auditable payloads and reproducible enrichment
+    """
+
+    source = models.CharField(
+        max_length=50,
+        default="coralcity",
+        help_text="External data source key (e.g., 'coralcity')",
+    )
+    external_id = models.CharField(
+        max_length=64,
+        db_index=True,
+        help_text="Identifier from the external system",
+    )
+
+    # As-is fields from the external API
+    title = models.CharField(max_length=255, blank=True)
+    price = models.BigIntegerField(null=True, blank=True)
+    deal_type = models.CharField(max_length=32, blank=True, help_text="rent|sale or vendor-specific")
+    city = models.CharField(max_length=64, blank=True)
+    state = models.CharField(max_length=64, blank=True)
+    url = models.URLField(blank=True)
+    original_url = models.URLField(blank=True)
+
+    # Coordinates as provided + spatial point for geospatial queries
+    lat = models.FloatField()
+    lng = models.FloatField()
+    location = models.PointField(srid=4326, geography=True)
+
+    # Raw payload for traceability/audits and future reprocessing
+    payload = models.JSONField(default=dict, blank=True)
+
+    # Aggregated nearest distances by layer (in meters), e.g.:
+    # {
+    #   "metro_m": 340.2, "metrobus_m": 1200.0, "bus_m": 45.3,
+    #   "grocery_m": 210.5, "clothing_m": 820.0, "malls_m": 1300.0,
+    #   "parks_m": 600.0, "taxi_m": 480.0, "minibus_m": 150.0, "bicycle_m": 90.0
+    # }
+    nearest_distances_m = models.JSONField(default=dict, blank=True)
+
+    fetched_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "External Listing"
+        verbose_name_plural = "External Listings"
+        constraints = [
+            models.UniqueConstraint(fields=["source", "external_id"], name="extlisting_unique_source_external_id"),
+        ]
+        indexes = [
+            models.Index(fields=["source", "external_id"]),
+            models.Index(fields=["fetched_at"]),
+            models.Index(fields=["updated_at"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.source}:{self.external_id} - {self.title[:40] if self.title else ''}"
+
+    def save(self, *args, **kwargs):
+        # Ensure location is synced from lat/lng
+        if self.lat is not None and self.lng is not None:
+            from django.contrib.gis.geos import Point
+
+            self.location = Point(float(self.lng), float(self.lat), srid=4326)
+        super().save(*args, **kwargs)
+
+
+class MapGenerationConfig(models.Model):
+    """
+    Centralized, admin-editable configuration for per-listing map generation.
+    Toggle layers, set search radii and max counts without touching code.
+    """
+
+    # Toggles
+    enable_metro = models.BooleanField(default=True)
+    enable_metrobus = models.BooleanField(default=True)
+    enable_bus = models.BooleanField(default=False)
+    enable_grocery = models.BooleanField(default=True)
+    enable_clothing = models.BooleanField(default=True)
+    enable_pharmacy = models.BooleanField(default=False)
+    enable_minibus = models.BooleanField(default=True)
+    enable_malls = models.BooleanField(default=True)
+    enable_parks = models.BooleanField(default=True)
+    enable_taxi = models.BooleanField(default=False)
+    enable_bicycle = models.BooleanField(default=False)
+
+    # Radii (meters)
+    radius_metro = models.PositiveIntegerField(default=1500)
+    radius_metrobus = models.PositiveIntegerField(default=2000)
+    radius_bus = models.PositiveIntegerField(default=600)
+    radius_grocery = models.PositiveIntegerField(default=600)
+    radius_clothing = models.PositiveIntegerField(default=1200)
+    radius_pharmacy = models.PositiveIntegerField(default=600)
+    radius_minibus = models.PositiveIntegerField(default=2500)
+    radius_malls = models.PositiveIntegerField(default=2000)
+    radius_parks = models.PositiveIntegerField(default=1500)
+    radius_taxi = models.PositiveIntegerField(default=800)
+    radius_bicycle = models.PositiveIntegerField(default=2500)
+
+    # Max counts per type
+    max_metro = models.PositiveIntegerField(default=6)
+    max_metrobus = models.PositiveIntegerField(default=6)
+    max_bus = models.PositiveIntegerField(default=8)
+    max_grocery = models.PositiveIntegerField(default=6)
+    max_clothing = models.PositiveIntegerField(default=6)
+    max_pharmacy = models.PositiveIntegerField(default=6)
+    max_minibus = models.PositiveIntegerField(default=10)
+    max_malls = models.PositiveIntegerField(default=6)
+    max_parks = models.PositiveIntegerField(default=8)
+    max_taxi = models.PositiveIntegerField(default=10)
+    max_bicycle = models.PositiveIntegerField(default=10)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Map Generation Config"
+        verbose_name_plural = "Map Generation Config"
+
+    def __str__(self) -> str:  # pragma: no cover
+        return "Map Generation Settings"
+
+    def save(self, *args, **kwargs):
+        # singleton
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):  # pragma: no cover
+        pass
+
+    @classmethod
+    def get_config(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class NearbyAmenityConfig(models.Model):
+    """
+    Configuration for the on-demand nearby amenities API endpoint.
+    Controls which layers are queried, search radius, and max results.
+    """
+
+    radius_m = models.PositiveIntegerField(
+        default=5000,
+        help_text="Search radius in meters (default: 5km)"
+    )
+    max_results = models.PositiveIntegerField(
+        default=10,
+        help_text="Maximum results to return per amenity type"
+    )
+
+    enable_metro = models.BooleanField(default=True)
+    enable_metrobus = models.BooleanField(default=True)
+    enable_bus = models.BooleanField(default=True)
+    enable_taxi = models.BooleanField(default=True)
+    enable_grocery = models.BooleanField(default=True)
+    enable_clothing = models.BooleanField(default=True)
+    enable_malls = models.BooleanField(default=True)
+    enable_parks = models.BooleanField(default=True)
+    enable_schools = models.BooleanField(default=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Nearby Amenity Config"
+        verbose_name_plural = "Nearby Amenity Config"
+
+    def __str__(self):  # pragma: no cover
+        return "Nearby Amenity Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):  # pragma: no cover
+        pass
+
+    @classmethod
+    def get_config(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
