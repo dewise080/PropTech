@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Tuple
+from pathlib import Path
 import json
 import logging
 import re
@@ -11,6 +12,8 @@ from django.contrib.gis.geos import Point
 from django.db import connection, reset_queries
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.template.loader import render_to_string
+from django.utils.text import slugify
 
 from .models import Listing, DisplayConfig, NearbyAmenityConfig
 from .services import ClosestStoresService
@@ -615,6 +618,40 @@ def _serialize_nearby_queryset(model, point: Point, radius_m: float, max_results
     return serialized
 
 
+def _build_map_context(query: str, center_lat: float, center_lng: float, radius_m: int, amenities_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Prepare context for rendering the standalone amenities map."""
+    return {
+        "query": query,
+        "center_lat": center_lat,
+        "center_lng": center_lng,
+        "radius_m": radius_m,
+        "amenities_json": json.dumps(amenities_data, ensure_ascii=False),
+    }
+
+
+def _save_map_to_static(context: Dict[str, Any], request: HttpRequest | None = None) -> Tuple[str, str | None]:
+    """Render the map template and persist it under static/nearby_maps.
+
+    Returns a tuple: (absolute_file_path, absolute_url_or_none).
+    """
+    maps_dir = Path(settings.BASE_DIR) / "static" / "nearby_maps"
+    maps_dir.mkdir(parents=True, exist_ok=True)
+
+    slug = slugify(context.get("query") or "location") or "location"
+    filename = f"nearby_amenities_{slug}_{int(time.time())}.html"
+    file_path = maps_dir / filename
+
+    html = render_to_string("listings/nearby_amenities_map.html", context)
+    file_path.write_text(html, encoding="utf-8")
+
+    map_url = None
+    if settings.STATIC_URL:
+        relative_url = f"{settings.STATIC_URL.rstrip('/')}/nearby_maps/{filename}"
+        map_url = request.build_absolute_uri(relative_url) if request else relative_url
+
+    return str(file_path), map_url
+
+
 @require_http_methods(["GET", "POST"])
 def nearby_amenities(request: HttpRequest) -> JsonResponse:
     """
@@ -677,6 +714,22 @@ def nearby_amenities(request: HttpRequest) -> JsonResponse:
         raw_results["parks"] = _serialize_nearby_queryset(Park, point, radius_m, max_results)
     if config.enable_schools:
         raw_results["schools"] = _serialize_nearby_queryset(School, point, radius_m, max_results)
+
+    map_context = _build_map_context(
+        query=raw_input,
+        center_lat=point.y,
+        center_lng=point.x,
+        radius_m=radius_m,
+        amenities_data=raw_results,
+    )
+
+    map_file_path = None
+    map_file_url = None
+    try:
+        map_file_path, map_file_url = _save_map_to_static(map_context, request)
+        logger.info(f"[NEARBY_AMENITIES] Generated static map at {map_file_path}")
+    except Exception as exc:
+        logger.error("[NEARBY_AMENITIES] Failed to generate static map HTML: %s", exc, exc_info=True)
 
     # Store raw results in session for map generation
     request.session["nearby_amenities_cache"] = {
@@ -762,15 +815,15 @@ def nearby_amenities(request: HttpRequest) -> JsonResponse:
             parts = ["{}, {}m".format(s["name"], round(s["distance_m"])) for s in schools]
             llm_summary["schools"] = "Schools: {}".format(", ".join(parts))
 
-    # Build full URL for the map
-    map_url = request.build_absolute_uri("/map/amenities/")
-    
+    if not map_file_url:
+        return JsonResponse({"error": "Failed to generate static map"}, status=500)
+
     response_data = {
         "query": raw_input,
         "location": {"lat": round(point.y, 6), "lng": round(point.x, 6)},
         "radius_m": radius_m,
         "summary": llm_summary,
-        "interactive_map_url": map_url
+        "map_static_url": map_file_url,
     }
 
     return JsonResponse(response_data)
@@ -784,21 +837,21 @@ def nearby_amenities_map(request: HttpRequest) -> HttpResponse:
     """
     # Try to get cached data from session
     cached_data = request.session.get("nearby_amenities_cache")
-    
+
     if cached_data:
         # Check if cache is still fresh (within 5 minutes)
         cache_age = time.time() - cached_data.get("timestamp", 0)
         if cache_age < 300:  # 5 minutes
             logger.info("[NEARBY_MAP] Using cached data from API call")
-            
-            context = {
-                "query": cached_data["query"],
-                "center_lat": cached_data["point"]["lat"],
-                "center_lng": cached_data["point"]["lng"],
-                "radius_m": cached_data["radius_m"],
-                "amenities_json": json.dumps(cached_data["raw_results"], ensure_ascii=False),
-            }
-            
+
+            context = _build_map_context(
+                query=cached_data["query"],
+                center_lat=cached_data["point"]["lat"],
+                center_lng=cached_data["point"]["lng"],
+                radius_m=cached_data["radius_m"],
+                amenities_data=cached_data["raw_results"],
+            )
+
             return render(request, "listings/nearby_amenities_map.html", context)
     
     # Fallback: if no cache or cache expired, query again
@@ -847,12 +900,12 @@ def nearby_amenities_map(request: HttpRequest) -> HttpResponse:
     if config.enable_schools:
         amenities_data["schools"] = _serialize_nearby_queryset(School, point, radius_m, max_results)
 
-    context = {
-        "query": raw_input,
-        "center_lat": point.y,
-        "center_lng": point.x,
-        "radius_m": radius_m,
-        "amenities_json": json.dumps(amenities_data, ensure_ascii=False),
-    }
+    context = _build_map_context(
+        query=raw_input,
+        center_lat=point.y,
+        center_lng=point.x,
+        radius_m=radius_m,
+        amenities_data=amenities_data,
+    )
 
     return render(request, "listings/nearby_amenities_map.html", context)
