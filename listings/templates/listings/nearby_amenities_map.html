@@ -131,7 +131,7 @@
             <span>Metro Stations</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background-color: #e67e22;"></div>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Metrobus_%C4%B0stanbul_Logo.svg/250px-Metrobus_%C4%B0stanbul_Logo.svg.png" alt="Metrobus" style="width: 20px; height: 20px; margin-right: 8px;">
             <span>Metrobus Stations</span>
         </div>
         <div class="legend-item">
@@ -239,6 +239,18 @@
             });
         }
         
+        // Create metrobus station icon using Istanbul Metrobus logo
+        function createMetrobusIcon() {
+            return L.icon({
+                iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Metrobus_%C4%B0stanbul_Logo.svg/250px-Metrobus_%C4%B0stanbul_Logo.svg.png',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -12],
+                className: 'metrobus-icon',
+                crossOrigin: 'anonymous'
+            });
+        }
+        
         // Icon mapping for different amenity types
         const icons = {
             metro: '🚇',
@@ -268,7 +280,9 @@
                 // Use special icons for different amenity types
                 if (type === 'metro') {
                     marker = L.marker([item.lat, item.lng], { icon: createMetroIcon() });
-                } else if (type === 'bus' || type === 'metrobus') {
+                } else if (type === 'metrobus') {
+                    marker = L.marker([item.lat, item.lng], { icon: createMetrobusIcon() });
+                } else if (type === 'bus') {
                     const markerIcon = L.divIcon({
                         html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><i class="fas fa-bus" style="color: white; font-size: 14px;"></i></div>`,
                         className: '',

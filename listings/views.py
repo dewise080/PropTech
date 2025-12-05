@@ -653,37 +653,124 @@ def nearby_amenities(request: HttpRequest) -> JsonResponse:
         f"[NEARBY_AMENITIES] input='{raw_input}' | source={source} | radius={radius_m}m | max={max_results}"
     )
 
-    results: Dict[str, Any] = {}
+    # Fetch raw data (single query for both LLM summary and map)
+    raw_results: Dict[str, Any] = {}
     if config.enable_metro:
-        results["metro"] = _serialize_nearby_queryset(MetroStation, point, radius_m, max_results)
+        raw_results["metro"] = _serialize_nearby_queryset(MetroStation, point, radius_m, max_results)
     if config.enable_metrobus:
-        results["metrobus"] = _serialize_nearby_queryset(MetrobusStation, point, radius_m, max_results)
+        raw_results["metrobus"] = _serialize_nearby_queryset(MetrobusStation, point, radius_m, max_results)
     if config.enable_bus:
-        results["bus"] = _serialize_nearby_queryset(BusStop, point, radius_m, max_results)
+        raw_results["bus"] = _serialize_nearby_queryset(BusStop, point, radius_m, max_results)
     if config.enable_taxi:
-        results["taxi"] = _serialize_nearby_queryset(TaxiStand, point, radius_m, max_results)
+        raw_results["taxi"] = _serialize_nearby_queryset(TaxiStand, point, radius_m, max_results)
     if config.enable_minibus:
         from tools.nearby_enrichment.minibus import nearby_minibus_segments
         minibus_data = nearby_minibus_segments(lon=point.x, lat=point.y, radius_m=radius_m, limit=max_results)
-        results["minibus"] = minibus_data
+        raw_results["minibus"] = [{"id": item["id"], "name": item["name"], "geometry": item["geometry"]} for item in minibus_data]
     if config.enable_grocery:
-        results["grocery"] = _serialize_nearby_queryset(Grocery, point, radius_m, max_results)
+        raw_results["grocery"] = _serialize_nearby_queryset(Grocery, point, radius_m, max_results)
     if config.enable_clothing:
-        results["clothing"] = _serialize_nearby_queryset(Clothing, point, radius_m, max_results)
+        raw_results["clothing"] = _serialize_nearby_queryset(Clothing, point, radius_m, max_results)
     if config.enable_malls:
-        results["malls"] = _serialize_nearby_queryset(Mall, point, radius_m, max_results)
+        raw_results["malls"] = _serialize_nearby_queryset(Mall, point, radius_m, max_results)
     if config.enable_parks:
-        results["parks"] = _serialize_nearby_queryset(Park, point, radius_m, max_results)
+        raw_results["parks"] = _serialize_nearby_queryset(Park, point, radius_m, max_results)
     if config.enable_schools:
-        results["schools"] = _serialize_nearby_queryset(School, point, radius_m, max_results)
+        raw_results["schools"] = _serialize_nearby_queryset(School, point, radius_m, max_results)
 
-    response_data = {
+    # Store raw results in session for map generation
+    request.session["nearby_amenities_cache"] = {
         "query": raw_input,
-        "resolved_from": source,
         "point": {"lat": point.y, "lng": point.x},
         "radius_m": radius_m,
         "max_results": max_results,
-        "results": results,
+        "raw_results": raw_results,
+        "timestamp": time.time()
+    }
+
+    # Format LLM-friendly summary (take only first 5 for summary)
+    llm_summary = {}
+    
+    # Metro stations (5 closest)
+    if raw_results.get("metro"):
+        stations = raw_results["metro"][:5]
+        if stations:
+            parts = ["{}, {}m".format(s["name"], round(s["distance_m"])) for s in stations]
+            llm_summary["metro"] = "Metro (5): {}".format(", ".join(parts))
+    
+    # Metrobus stations (5 closest)
+    if raw_results.get("metrobus"):
+        stations = raw_results["metrobus"][:5]
+        if stations:
+            parts = ["{}, {}m".format(s["name"], round(s["distance_m"])) for s in stations]
+            llm_summary["metrobus"] = "Metrobus (5): {}".format(", ".join(parts))
+    
+    # Bus stops (closest and farthest)
+    if raw_results.get("bus"):
+        stops = raw_results["bus"][:5]
+        if stops:
+            closest = stops[0]
+            farthest = stops[-1]
+            llm_summary["bus"] = "Bus stations (5): Closest: {}, {}m | Farthest: {}, {}m".format(
+                closest['name'], round(closest['distance_m']),
+                farthest['name'], round(farthest['distance_m'])
+            )
+    
+    # Taxi stands (closest and farthest)
+    if raw_results.get("taxi"):
+        stands = raw_results["taxi"][:5]
+        if stands:
+            closest = stands[0]
+            farthest = stands[-1]
+            llm_summary["taxi"] = "Taxi stops: Closest: {}, {}m | Farthest: {}, {}m".format(
+                closest['name'], round(closest['distance_m']),
+                farthest['name'], round(farthest['distance_m'])
+            )
+    
+    # Grocery stores (5 closest, name and distance only)
+    if raw_results.get("grocery"):
+        stores = raw_results["grocery"][:5]
+        if stores:
+            parts = ["{}, {}m".format(s["name"], round(s["distance_m"])) for s in stores]
+            llm_summary["grocery"] = "Grocery (5): {}".format(", ".join(parts))
+    
+    # Clothing stores (5 closest, name and distance only)
+    if raw_results.get("clothing"):
+        stores = raw_results["clothing"][:5]
+        if stores:
+            parts = ["{}, {}m".format(s["name"], round(s["distance_m"])) for s in stores]
+            llm_summary["clothing"] = "Clothing (5): {}".format(", ".join(parts))
+    
+    # Shopping malls (name and distance)
+    if raw_results.get("malls"):
+        malls = raw_results["malls"][:5]
+        if malls:
+            parts = ["{}, {}m".format(m["name"], round(m["distance_m"])) for m in malls]
+            llm_summary["malls"] = "Malls: {}".format(", ".join(parts))
+    
+    # Parks (name and distance)
+    if raw_results.get("parks"):
+        parks = raw_results["parks"][:5]
+        if parks:
+            parts = ["{}, {}m".format(p["name"], round(p["distance_m"])) for p in parks]
+            llm_summary["parks"] = "Parks: {}".format(", ".join(parts))
+    
+    # Schools (name and distance)
+    if raw_results.get("schools"):
+        schools = raw_results["schools"][:5]
+        if schools:
+            parts = ["{}, {}m".format(s["name"], round(s["distance_m"])) for s in schools]
+            llm_summary["schools"] = "Schools: {}".format(", ".join(parts))
+
+    # Build full URL for the map
+    map_url = request.build_absolute_uri("/map/amenities/")
+    
+    response_data = {
+        "query": raw_input,
+        "location": {"lat": round(point.y, 6), "lng": round(point.x, 6)},
+        "radius_m": radius_m,
+        "summary": llm_summary,
+        "interactive_map_url": map_url
     }
 
     return JsonResponse(response_data)
@@ -693,13 +780,32 @@ def nearby_amenities(request: HttpRequest) -> JsonResponse:
 def nearby_amenities_map(request: HttpRequest) -> HttpResponse:
     """
     Generate a standalone shareable HTML map showing nearby amenities.
-    Accepts same parameters as nearby_amenities_api.
-    Returns an HTML page that can be saved as a static file.
+    Uses cached data from the API call to avoid re-querying the database.
     """
+    # Try to get cached data from session
+    cached_data = request.session.get("nearby_amenities_cache")
+    
+    if cached_data:
+        # Check if cache is still fresh (within 5 minutes)
+        cache_age = time.time() - cached_data.get("timestamp", 0)
+        if cache_age < 300:  # 5 minutes
+            logger.info("[NEARBY_MAP] Using cached data from API call")
+            
+            context = {
+                "query": cached_data["query"],
+                "center_lat": cached_data["point"]["lat"],
+                "center_lng": cached_data["point"]["lng"],
+                "radius_m": cached_data["radius_m"],
+                "amenities_json": json.dumps(cached_data["raw_results"], ensure_ascii=False),
+            }
+            
+            return render(request, "listings/nearby_amenities_map.html", context)
+    
+    # Fallback: if no cache or cache expired, query again
     raw_input = request.GET.get("location") or request.GET.get("q")
     
     if not raw_input:
-        return HttpResponse("Provide a location via 'location' or 'q' parameter.", status=400)
+        return HttpResponse("Provide a location via 'location' or 'q' parameter, or call the API first.", status=400)
 
     try:
         point, source = _extract_point_from_input(raw_input)
@@ -713,7 +819,7 @@ def nearby_amenities_map(request: HttpRequest) -> HttpResponse:
     max_results = _coerce_positive_int(request.GET.get("max_results"), config.max_results)
 
     logger.info(
-        f"[NEARBY_MAP] input='{raw_input}' | source={source} | radius={radius_m}m | max={max_results}"
+        f"[NEARBY_MAP] Cache miss - querying database | input='{raw_input}' | source={source} | radius={radius_m}m | max={max_results}"
     )
 
     # Collect all amenities
@@ -729,7 +835,6 @@ def nearby_amenities_map(request: HttpRequest) -> HttpResponse:
     if config.enable_minibus:
         from tools.nearby_enrichment.minibus import nearby_minibus_segments
         minibus_data = nearby_minibus_segments(lon=point.x, lat=point.y, radius_m=radius_m, limit=max_results)
-        # Convert to match the standard format
         amenities_data["minibus"] = [{"id": item["id"], "name": item["name"], "geometry": item["geometry"]} for item in minibus_data]
     if config.enable_grocery:
         amenities_data["grocery"] = _serialize_nearby_queryset(Grocery, point, radius_m, max_results)
