@@ -21,7 +21,7 @@ WORKDIR /app
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -32,5 +32,5 @@ RUN python manage.py collectstatic --noinput || true
 # Expose port
 EXPOSE 80
 
-# Run the application
-CMD python manage.py migrate && gunicorn IstanbulPropTech.wsgi:application --bind 0.0.0.0:80 --workers 4
+# Run the application with Django's development server
+CMD python manage.py migrate && python manage.py runserver 0.0.0.0:8000
