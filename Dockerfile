@@ -30,7 +30,7 @@ COPY . .
 RUN python manage.py collectstatic --noinput || true
 
 # Expose port
-EXPOSE 80
+EXPOSE 8000
 
 # Run the application with Django's development server
 CMD python manage.py migrate && python manage.py runserver 0.0.0.0:8000
