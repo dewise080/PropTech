@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgis/postgis:15-3.3
+    image: medtouadmin/proptech-db:latest
     environment:
       POSTGRES_DB: istanbul_proptech
       POSTGRES_USER: postgres
@@ -8,6 +8,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./full_migration_data.sql:/docker-entrypoint-initdb.d/full_migration_data.sql
+    ports:
+      - "15432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -15,18 +17,18 @@ services:
       retries: 5
 
   web:
-    image: medtouadmin/proptech-web-dev:fixed2
+    image: medtouadmin/proptech-web-dev:fixed-whitenoise
     command: >
       sh -c "
         python manage.py migrate &&
-        python manage.py collectstatic --noinput || true &&
-        python manage.py runserver 0.0.0.0:8000
+        python manage.py collectstatic --noinput || true;
+        python manage.py runserver 0.0.0.0:8000 --insecure
       "
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/listings
     ports:
-      - "8000:8000"
+      - "18000:8000"
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-me}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}

@@ -3,7 +3,15 @@ from django.urls import path
 from django_distill import distill_path
 from django.conf import settings
 from django.conf.urls.static import static
-from listings.views import map_view, listings_geojson, simplified_map_view, simplified_geojson, nearby_amenities, nearby_amenities_map
+from listings.views import (
+    map_view,
+    listings_geojson,
+    simplified_map_view,
+    simplified_geojson,
+    nearby_amenities,
+    nearby_amenities_map,
+    amenities_front,
+)
 from transit_layer.views import metro_stations_geojson, transit_geojson
 from stores_layer.views import stores_geojson
 
@@ -16,6 +24,7 @@ urlpatterns = [
     distill_path("api/metro_stations.geojson", metro_stations_geojson, name="metro_stations_geojson", distill_file="api/metro_stations.geojson"),
     distill_path("api/transit.geojson", transit_geojson, name="transit_geojson", distill_file="api/transit.geojson"),
     distill_path("api/stores.geojson", stores_geojson, name="stores_geojson", distill_file="api/stores.geojson"),
+    path("amenities/", amenities_front, name="amenities_front"),
     path("api/amenities/nearby/", nearby_amenities, name="nearby_amenities"),
     path("map/amenities/", nearby_amenities_map, name="nearby_amenities_map"),
 ]

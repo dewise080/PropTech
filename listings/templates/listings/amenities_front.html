@@ -1,0 +1,393 @@
+{% load leaflet_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nearby Amenities</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% leaflet_css %}
+    {% leaflet_js %}
+
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      #pick_map {
+        height: 70vh;
+        min-height: 420px;
+        width: 100%;
+        border-radius: 14px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+
+  <body class="bg-slate-50 text-slate-900">
+    <div class="min-h-screen">
+      <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <div class="min-w-0">
+            <div class="text-lg font-semibold leading-tight">Nearby amenities</div>
+            <div class="text-sm text-slate-600">Pick a point (pin) or type a location, then confirm.</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <a
+              href="/"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Back to map
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-6xl px-4 py-6">
+        <div class="grid gap-4 lg:grid-cols-2">
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="space-y-4">
+              <div>
+                <label for="location" class="block text-sm font-medium text-slate-700">Location</label>
+                <div class="mt-1 flex gap-2">
+                  <input
+                    id="location"
+                    name="location"
+                    type="text"
+                    value="{{ prefill_location }}"
+                    placeholder="Click the map to drop a pin, or type: 40.991, 29.036 (or address)"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    autocomplete="off"
+                  />
+                </div>
+                <p class="mt-2 text-xs text-slate-500">
+                  Tip: pin-drop fills coordinates automatically. You can also paste a Google Maps link or free-text
+                  address (geocoding requires <code class="rounded bg-slate-100 px-1">geopy</code>).
+                </p>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label for="radius_m" class="block text-sm font-medium text-slate-700">Radius (meters)</label>
+                  <input
+                    id="radius_m"
+                    type="number"
+                    min="50"
+                    step="50"
+                    value="{{ default_radius_m }}"
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+                <div>
+                  <label for="max_results" class="block text-sm font-medium text-slate-700">Max results / type</label>
+                  <input
+                    id="max_results"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value="{{ default_max_results }}"
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <button
+                  id="useMyLocationBtn"
+                  type="button"
+                  class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  Use my location
+                </button>
+                <button
+                  id="clearPinBtn"
+                  type="button"
+                  class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  Clear pin
+                </button>
+                <button
+                  id="findBtn"
+                  type="button"
+                  class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                >
+                  Confirm & find amenities
+                </button>
+              </div>
+
+              <div id="status" class="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"></div>
+
+              <div id="results" class="hidden rounded-xl border border-slate-200 bg-white p-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="text-sm font-semibold text-slate-800">Results</div>
+                  <div class="flex flex-wrap gap-2">
+                    <a
+                      id="openMapLink"
+                      href="#"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="hidden rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                    >
+                      Open generated map
+                    </a>
+                    <a
+                      id="openInteractiveMapLink"
+                      href="#"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="hidden rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                    >
+                      Open interactive map
+                    </a>
+                  </div>
+                </div>
+                <div id="resolved" class="mt-2 text-xs text-slate-500"></div>
+                <ul id="summaryList" class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700"></ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="mb-2 flex items-center justify-between">
+              <div class="text-sm font-semibold text-slate-800">Pick on map</div>
+              <div class="text-xs text-slate-500">Click to drop a pin</div>
+            </div>
+            <div id="pick_map"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const apiUrl = "{% url 'nearby_amenities' %}";
+      const interactiveMapUrl = "{% url 'nearby_amenities_map' %}";
+
+      const locationInput = document.getElementById("location");
+      const radiusInput = document.getElementById("radius_m");
+      const maxResultsInput = document.getElementById("max_results");
+      const useMyLocationBtn = document.getElementById("useMyLocationBtn");
+      const clearPinBtn = document.getElementById("clearPinBtn");
+      const findBtn = document.getElementById("findBtn");
+
+      const statusEl = document.getElementById("status");
+      const resultsEl = document.getElementById("results");
+      const summaryList = document.getElementById("summaryList");
+      const resolvedEl = document.getElementById("resolved");
+      const openMapLink = document.getElementById("openMapLink");
+      const openInteractiveMapLink = document.getElementById("openInteractiveMapLink");
+
+      function showStatus(message, kind) {
+        statusEl.classList.remove("hidden");
+        statusEl.classList.toggle("border-red-200", kind === "error");
+        statusEl.classList.toggle("bg-red-50", kind === "error");
+        statusEl.classList.toggle("text-red-800", kind === "error");
+        statusEl.classList.toggle("border-slate-200", kind !== "error");
+        statusEl.classList.toggle("bg-slate-50", kind !== "error");
+        statusEl.classList.toggle("text-slate-800", kind !== "error");
+        statusEl.textContent = message;
+      }
+
+      function clearStatus() {
+        statusEl.classList.add("hidden");
+        statusEl.textContent = "";
+      }
+
+      function setBusy(isBusy) {
+        findBtn.disabled = isBusy;
+        findBtn.textContent = isBusy ? "Searching..." : "Confirm & find amenities";
+      }
+
+      function parseLatLng(value) {
+        if (!value) return null;
+        const m = value.trim().match(/(-?\\d{1,3}(?:\\.\\d+)?)[ ,]+(-?\\d{1,3}(?:\\.\\d+)?)/);
+        if (!m) return null;
+        const lat = Number(m[1]);
+        const lng = Number(m[2]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+        return { lat, lng };
+      }
+
+      const map = L.map("pick_map", {
+        zoomControl: true,
+      }).setView([{{ default_center_lat }}, {{ default_center_lng }}], {{ default_zoom }});
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      let marker = null;
+      let radiusCircle = null;
+
+      function updateRadiusCircle() {
+        if (!marker) return;
+        const radius = Math.max(1, Number(radiusInput.value || 0));
+        if (!radiusCircle) {
+          radiusCircle = L.circle(marker.getLatLng(), {
+            radius,
+            color: "#4f46e5",
+            weight: 2,
+            opacity: 0.8,
+            fillColor: "#4f46e5",
+            fillOpacity: 0.12,
+          }).addTo(map);
+        } else {
+          radiusCircle.setLatLng(marker.getLatLng());
+          radiusCircle.setRadius(radius);
+        }
+      }
+
+      function setPin(lat, lng, { pan = true } = {}) {
+        const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        locationInput.value = coordsText;
+
+        if (!marker) {
+          marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+          marker.on("dragend", () => {
+            const p = marker.getLatLng();
+            setPin(p.lat, p.lng, { pan: false });
+          });
+        } else {
+          marker.setLatLng([lat, lng]);
+        }
+
+        if (pan) map.panTo([lat, lng]);
+        updateRadiusCircle();
+      }
+
+      map.on("click", (e) => {
+        setPin(e.latlng.lat, e.latlng.lng);
+        clearStatus();
+      });
+
+      radiusInput.addEventListener("input", updateRadiusCircle);
+
+      clearPinBtn.addEventListener("click", () => {
+        if (marker) {
+          map.removeLayer(marker);
+          marker = null;
+        }
+        if (radiusCircle) {
+          map.removeLayer(radiusCircle);
+          radiusCircle = null;
+        }
+        locationInput.value = "";
+        resultsEl.classList.add("hidden");
+        clearStatus();
+      });
+
+      useMyLocationBtn.addEventListener("click", () => {
+        if (!navigator.geolocation) {
+          showStatus("Geolocation is not supported in this browser.", "error");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setPin(pos.coords.latitude, pos.coords.longitude);
+            map.setZoom(16);
+            clearStatus();
+          },
+          (err) => {
+            showStatus(`Failed to get current location: ${err.message}`, "error");
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+
+      async function runSearch() {
+        const rawLocation = (locationInput.value || "").trim();
+        if (!rawLocation) {
+          showStatus("Please pick a point on the map or enter a location.", "error");
+          return;
+        }
+
+        const radius = Math.max(1, Number(radiusInput.value || 0));
+        const maxResults = Math.max(1, Number(maxResultsInput.value || 0));
+
+        resultsEl.classList.add("hidden");
+        summaryList.innerHTML = "";
+        openMapLink.classList.add("hidden");
+        openInteractiveMapLink.classList.add("hidden");
+        resolvedEl.textContent = "";
+        clearStatus();
+        setBusy(true);
+
+        try {
+          const url = new URL(apiUrl, window.location.origin);
+          url.searchParams.set("location", rawLocation);
+          url.searchParams.set("radius_m", String(radius));
+          url.searchParams.set("max_results", String(maxResults));
+
+          const resp = await fetch(url.toString(), { method: "GET" });
+          const data = await resp.json().catch(() => ({}));
+
+          if (!resp.ok) {
+            const err = data && data.error ? data.error : `Request failed with status ${resp.status}`;
+            showStatus(err, "error");
+            return;
+          }
+
+          if (data.location && typeof data.location.lat === "number" && typeof data.location.lng === "number") {
+            setPin(data.location.lat, data.location.lng);
+          } else {
+            const maybeCoords = parseLatLng(rawLocation);
+            if (maybeCoords) setPin(maybeCoords.lat, maybeCoords.lng);
+          }
+
+          const resolvedText = data.location
+            ? `Resolved location: ${data.location.lat}, ${data.location.lng} • radius=${data.radius_m}m`
+            : "";
+          resolvedEl.textContent = resolvedText;
+
+          const summary = data.summary || {};
+          const keys = Object.keys(summary);
+          if (keys.length === 0) {
+            summaryList.innerHTML = '<li>No summary returned (try increasing radius).</li>';
+          } else {
+            for (const k of keys) {
+              const li = document.createElement("li");
+              li.textContent = summary[k];
+              summaryList.appendChild(li);
+            }
+          }
+
+          if (data.map_static_url) {
+            openMapLink.href = data.map_static_url;
+            openMapLink.classList.remove("hidden");
+          }
+
+          const interactiveUrl = new URL(interactiveMapUrl, window.location.origin);
+          interactiveUrl.searchParams.set("location", rawLocation);
+          interactiveUrl.searchParams.set("radius_m", String(radius));
+          interactiveUrl.searchParams.set("max_results", String(maxResults));
+          openInteractiveMapLink.href = interactiveUrl.toString();
+          openInteractiveMapLink.classList.remove("hidden");
+
+          resultsEl.classList.remove("hidden");
+        } catch (e) {
+          showStatus(`Unexpected error: ${e}`, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      findBtn.addEventListener("click", runSearch);
+      locationInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          runSearch();
+        }
+      });
+
+      // If user pre-filled coords in querystring, set the pin.
+      const initialCoords = parseLatLng(locationInput.value);
+      if (initialCoords) setPin(initialCoords.lat, initialCoords.lng, { pan: false });
+    </script>
+  </body>
+</html>
+

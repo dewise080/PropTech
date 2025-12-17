@@ -14,3 +14,4 @@ sqlparse
 typing_extensions
 urllib3
 geopy
+whitenoise

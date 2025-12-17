@@ -534,6 +534,30 @@ def simplified_geojson(request: HttpRequest) -> JsonResponse:
 # Nearby amenities API
 # ============================================================================
 
+@require_http_methods(["GET"])
+def amenities_front(request: HttpRequest) -> HttpResponse:
+    """
+    Simple UI for selecting a location (typed or pin-drop) and calling the nearby
+    amenities endpoint.
+    """
+    config = NearbyAmenityConfig.get_config()
+    leaflet_cfg = getattr(settings, "LEAFLET_CONFIG", {}) or {}
+    default_center = leaflet_cfg.get("DEFAULT_CENTER", (40.991, 29.036))
+    default_zoom = leaflet_cfg.get("DEFAULT_ZOOM", 13)
+
+    return render(
+        request,
+        "listings/amenities_front.html",
+        {
+            "default_center_lat": default_center[0],
+            "default_center_lng": default_center[1],
+            "default_zoom": default_zoom,
+            "default_radius_m": config.radius_m,
+            "default_max_results": config.max_results,
+            "prefill_location": request.GET.get("location", ""),
+        },
+    )
+
 COORD_REGEX = re.compile(r"(-?\d{1,3}(?:\.\d+)?)[ ,]+(-?\d{1,3}(?:\.\d+)?)")
 
 
