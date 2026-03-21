@@ -14,6 +14,7 @@ from listings.views import (
 )
 from transit_layer.views import metro_stations_geojson, transit_geojson
 from stores_layer.views import stores_geojson
+from newflow.views import file_map_view, file_map_configure_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -27,6 +28,8 @@ urlpatterns = [
     path("amenities/", amenities_front, name="amenities_front"),
     path("api/amenities/nearby/", nearby_amenities, name="nearby_amenities"),
     path("map/amenities/", nearby_amenities_map, name="nearby_amenities_map"),
+    path("map/file/", file_map_view, name="file_map"),
+    path("map/file/configure/", file_map_configure_view, name="file_map_configure"),
 ]
 
 # Serve media files in development

@@ -74711,3 +74711,314 @@ LINE 1: ...s", "listings_nearbyamenityconfig"."enable_taxi", "listings_...
 [INFO] 2025-12-17 16:56:50 django.server log_message:249 - "GET /api/amenities/nearby/?location=41.043624%2C+28.889260&radius_m=5000&max_results=12 HTTP/1.1" 200 1029
 [INFO] 2025-12-17 16:56:57 listings.views nearby_amenities_map:869 - [NEARBY_MAP] Using cached data from API call
 [INFO] 2025-12-17 16:56:57 django.server log_message:249 - "GET /map/amenities/?location=41.043624%2C+28.889260&radius_m=5000&max_results=12 HTTP/1.1" 200 72665
+[INFO] 2026-03-21 15:58:40 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:02:35 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/IstanbulPropTech/settings.py changed, reloading.
+[INFO] 2026-03-21 16:02:37 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:09:35 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:13:11 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:13:25 django.server log_message:249 - "GET / HTTP/1.1" 200 42861
+[INFO] 2026-03-21 16:13:26 django.server log_message:249 - "GET /static/leaflet/leaflet.css HTTP/1.1" 200 14657
+[INFO] 2026-03-21 16:13:26 django.server log_message:249 - "GET /static/leaflet/draw/leaflet.draw.i18n.js HTTP/1.1" 200 4437
+[INFO] 2026-03-21 16:13:26 django.server log_message:249 - "GET /static/leaflet/leaflet.extras.css HTTP/1.1" 200 96
+[INFO] 2026-03-21 16:13:26 django.server log_message:249 - "GET /static/leaflet/leaflet.extras.js HTTP/1.1" 200 8809
+[INFO] 2026-03-21 16:13:26 django.server log_message:249 - "GET /static/leaflet/leaflet.js HTTP/1.1" 200 146715
+[WARNING] 2026-03-21 16:13:27 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 16:13:27 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4399
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:150 - ================================================================================
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:151 - [API_START] listings_geojson endpoint called
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:152 - [CONFIG] DEBUG mode: True
+[INFO] 2026-03-21 16:13:27 listings.models save:52 - [CONFIG_SAVED] Updated display limits - Listings: 100, Grocery: 200, Clothing: 200, Metro: 100
+[INFO] 2026-03-21 16:13:27 listings.models get_config:71 - [CONFIG_CREATED] New DisplayConfig created with default values
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:159 - [CONFIG_LOADED] Time: 0.0351s | Max Listings: 100
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:172 - [DB_QUERY] Retrieved 0/0 listings | Query time: 0.0474s
+[DEBUG] 2026-03-21 16:13:27 listings.views listings_geojson:179 - [DB_STATS] Queries so far: 6
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:201 - 
+[DEBUG] 2026-03-21 16:13:27 listings.views listings_geojson:213 - [DB_STATS] Total queries executed: 6
+[DEBUG] 2026-03-21 16:13:27 listings.views listings_geojson:217 - [DB_STATS] Total query time: 0.0460s
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:221 - [API_COMPLETE] ✓ Success | Total time: 0.0863s | Features returned: 0/0 | Response size: ~0.04KB
+[INFO] 2026-03-21 16:13:27 listings.views listings_geojson:227 - ================================================================================
+[INFO] 2026-03-21 16:13:27 django.server log_message:249 - "GET /api/listings.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 16:13:27 django.server log_message:249 - "GET /api/transit.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 16:13:27 django.server log_message:249 - "GET /api/stores.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 16:13:27 django.server log_message:249 - "GET /static/leaflet/images/layers.png HTTP/1.1" 200 696
+[INFO] 2026-03-21 16:13:28 django.server log_message:249 - "GET /static/leaflet/images/layers.png HTTP/1.1" 200 696
+[ERROR] 2026-03-21 16:13:39 django.request log_message:249 - Internal Server Error: /map/file/
+Traceback (most recent call last):
+  File "/home/lofa/dev/PropTech/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/lofa/dev/PropTech/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/lofa/dev/PropTech/venv/lib/python3.13/site-packages/django/views/decorators/http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+  File "/home/lofa/dev/PropTech/newflow/views.py", line 33, in file_map_view
+    data = load_json(json_path)
+  File "/home/lofa/dev/PropTech/newflow/loader.py", line 83, in load_json
+    raw = json.load(f)
+  File "/usr/lib/python3.13/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+        cls=cls, object_hook=object_hook,
+        parse_float=parse_float, parse_int=parse_int,
+        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+  File "/usr/lib/python3.13/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/lib/python3.13/json/decoder.py", line 348, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 2 column 1 (char 5602)
+[ERROR] 2026-03-21 16:13:39 django.server log_message:249 - "GET /map/file/?file=pharmacies HTTP/1.1" 500 113150
+[WARNING] 2026-03-21 16:13:39 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 16:13:39 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4399
+[INFO] 2026-03-21 16:14:14 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 16:14:16 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:15:21 django.server log_message:249 - "GET /map/file/?file=pharmacies HTTP/1.1" 200 21373
+[WARNING] 2026-03-21 16:15:22 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 16:19:58 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 16:20:00 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:20:14 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 16:20:16 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:25:05 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 16:37:39 django.server log_message:249 - "GET /map/file HTTP/1.1" 301 0
+[INFO] 2026-03-21 16:37:39 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[WARNING] 2026-03-21 16:37:40 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 16:37:40 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4399
+[INFO] 2026-03-21 16:41:36 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 16:47:42 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 16:47:45 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:47:48 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 16:47:49 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:48:12 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 16:48:13 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:49:32 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/IstanbulPropTech/urls.py changed, reloading.
+[INFO] 2026-03-21 16:49:34 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:49:35 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/IstanbulPropTech/urls.py changed, reloading.
+[INFO] 2026-03-21 16:49:36 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 16:53:46 django.server log_message:249 - "GET /map/file HTTP/1.1" 301 0
+[INFO] 2026-03-21 16:53:46 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 16:54:42 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 16:54:43 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 23768
+[INFO] 2026-03-21 16:56:47 django.server log_message:249 - "GET /map/file/?file=pharmacies HTTP/1.1" 200 3439
+[INFO] 2026-03-21 16:56:59 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 18374
+[INFO] 2026-03-21 16:57:10 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 23768
+[INFO] 2026-03-21 16:57:26 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 18385
+[INFO] 2026-03-21 16:57:34 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 23768
+[INFO] 2026-03-21 17:03:06 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 17:03:15 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 17:03:15 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 25978
+[INFO] 2026-03-21 17:06:08 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 26083
+[INFO] 2026-03-21 17:28:31 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30526
+[INFO] 2026-03-21 17:28:46 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 23250
+[INFO] 2026-03-21 17:30:55 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30522
+[INFO] 2026-03-21 17:31:03 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30522
+[WARNING] 2026-03-21 17:31:03 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 17:31:11 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 23246
+[WARNING] 2026-03-21 17:31:12 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 17:31:16 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30522
+[INFO] 2026-03-21 17:31:26 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30522
+[INFO] 2026-03-21 17:31:32 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 23246
+[WARNING] 2026-03-21 17:31:33 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:31:33 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:35:09 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30522
+[WARNING] 2026-03-21 17:35:09 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 17:35:10 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 30522
+[WARNING] 2026-03-21 17:35:11 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:35:11 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:36:25 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 23246
+[INFO] 2026-03-21 17:38:55 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 31735
+[WARNING] 2026-03-21 17:38:56 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:38:56 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:43:40 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 17:43:42 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 17:43:46 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 17:43:47 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 17:43:51 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 17:43:53 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 17:45:11 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 33979
+[WARNING] 2026-03-21 17:45:12 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:45:12 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:45:14 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 33979
+[WARNING] 2026-03-21 17:45:15 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:45:15 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:45:20 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 24035
+[WARNING] 2026-03-21 17:45:21 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:45:21 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:55:21 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 17:55:23 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 17:55:25 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 17:55:27 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 17:56:49 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 29117
+[WARNING] 2026-03-21 17:56:50 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 17:56:50 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 17:57:10 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 37327
+[WARNING] 2026-03-21 17:57:13 django.request log_message:249 - Not Found: /map/
+[WARNING] 2026-03-21 17:57:13 django.server log_message:249 - "GET /map/ HTTP/1.1" 404 4567
+[INFO] 2026-03-21 17:58:19 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 17:58:29 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 17:58:29 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38569
+[INFO] 2026-03-21 17:58:37 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36121
+[INFO] 2026-03-21 17:58:42 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38569
+[INFO] 2026-03-21 17:58:47 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36121
+[INFO] 2026-03-21 17:58:57 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36121
+[INFO] 2026-03-21 17:59:39 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 17:59:49 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38569
+[INFO] 2026-03-21 18:00:10 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36121
+[WARNING] 2026-03-21 18:00:10 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 18:00:10 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 18:02:09 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38569
+[WARNING] 2026-03-21 18:02:10 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 18:02:10 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 18:02:14 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36121
+[WARNING] 2026-03-21 18:02:15 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 18:02:15 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 18:11:49 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38628
+[INFO] 2026-03-21 18:11:53 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38628
+[WARNING] 2026-03-21 18:11:53 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 18:11:53 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 18:11:57 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36180
+[WARNING] 2026-03-21 18:11:58 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 18:11:58 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:12:38 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36180
+[WARNING] 2026-03-21 19:12:39 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:12:39 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:30:40 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36842
+[WARNING] 2026-03-21 19:30:41 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:30:41 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:36:18 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 36842
+[WARNING] 2026-03-21 19:36:19 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:36:19 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:36:39 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 19:40:04 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 19:40:07 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 19:42:24 django.server log_message:249 - "GET / HTTP/1.1" 200 42861
+[INFO] 2026-03-21 19:42:24 django.server log_message:249 - "GET /static/leaflet/leaflet.extras.js HTTP/1.1" 200 8809
+[INFO] 2026-03-21 19:42:24 django.server log_message:249 - "GET /static/leaflet/leaflet.extras.css HTTP/1.1" 200 96
+[INFO] 2026-03-21 19:42:24 django.server log_message:249 - "GET /static/leaflet/draw/leaflet.draw.i18n.js HTTP/1.1" 200 4437
+[INFO] 2026-03-21 19:42:24 django.server log_message:249 - "GET /static/leaflet/leaflet.css HTTP/1.1" 200 14657
+[INFO] 2026-03-21 19:42:24 django.server log_message:249 - "GET /static/leaflet/leaflet.js HTTP/1.1" 200 146715
+[WARNING] 2026-03-21 19:42:25 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:42:25 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:150 - ================================================================================
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:151 - [API_START] listings_geojson endpoint called
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:152 - [CONFIG] DEBUG mode: True
+[DEBUG] 2026-03-21 19:42:26 listings.models get_config:73 - [CONFIG_RETRIEVED] Current limits - Listings: 100, Grocery: 200, Clothing: 200, Metro: 100
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:159 - [CONFIG_LOADED] Time: 0.0307s | Max Listings: 100
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:172 - [DB_QUERY] Retrieved 0/0 listings | Query time: 0.0515s
+[DEBUG] 2026-03-21 19:42:26 listings.views listings_geojson:179 - [DB_STATS] Queries so far: 3
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:201 - 
+[DEBUG] 2026-03-21 19:42:26 listings.views listings_geojson:213 - [DB_STATS] Total queries executed: 3
+[DEBUG] 2026-03-21 19:42:26 listings.views listings_geojson:217 - [DB_STATS] Total query time: 0.0450s
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:221 - [API_COMPLETE] ✓ Success | Total time: 0.0848s | Features returned: 0/0 | Response size: ~0.04KB
+[INFO] 2026-03-21 19:42:26 listings.views listings_geojson:227 - ================================================================================
+[INFO] 2026-03-21 19:42:26 django.server log_message:249 - "GET /api/transit.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 19:42:26 django.server log_message:249 - "GET /api/listings.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 19:42:26 django.server log_message:249 - "GET /api/stores.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 19:42:26 django.server log_message:249 - "GET /static/leaflet/images/layers.png HTTP/1.1" 200 696
+[WARNING] 2026-03-21 19:42:47 django.request log_message:249 - Not Found: /api/file
+[WARNING] 2026-03-21 19:42:47 django.server log_message:249 - "GET /api/file HTTP/1.1" 404 4579
+[WARNING] 2026-03-21 19:42:59 django.request log_message:249 - Not Found: / map/file
+[WARNING] 2026-03-21 19:42:59 django.server log_message:249 - "GET /%20map/file HTTP/1.1" 404 4584
+[INFO] 2026-03-21 19:43:02 django.server log_message:249 - "GET /map/file HTTP/1.1" 301 0
+[INFO] 2026-03-21 19:43:02 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 19:43:15 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 19:43:15 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 39193
+[WARNING] 2026-03-21 19:43:38 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 19:44:56 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 19:44:57 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 19:44:57 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 19:44:57 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[WARNING] 2026-03-21 19:44:58 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:44:58 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:45:22 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[WARNING] 2026-03-21 19:45:23 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:45:23 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:45:27 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 19:45:27 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 39781
+[INFO] 2026-03-21 19:45:35 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 37448
+[WARNING] 2026-03-21 19:45:36 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 19:55:42 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 38845
+[WARNING] 2026-03-21 19:55:43 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 19:55:43 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 19:57:10 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[WARNING] 2026-03-21 19:57:10 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 20:06:24 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 20:06:26 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 20:26:23 django.server log_message:249 - "GET / HTTP/1.1" 200 42861
+[INFO] 2026-03-21 20:26:23 django.server log_message:249 - "GET /static/leaflet/leaflet.css HTTP/1.1" 200 14657
+[INFO] 2026-03-21 20:26:23 django.server log_message:249 - "GET /static/leaflet/leaflet.extras.css HTTP/1.1" 200 96
+[INFO] 2026-03-21 20:26:23 django.server log_message:249 - "GET /static/leaflet/draw/leaflet.draw.i18n.js HTTP/1.1" 200 4437
+[INFO] 2026-03-21 20:26:23 django.server log_message:249 - "GET /static/leaflet/leaflet.js HTTP/1.1" 200 146715
+[INFO] 2026-03-21 20:26:23 django.server log_message:249 - "GET /static/leaflet/leaflet.extras.js HTTP/1.1" 200 8809
+[WARNING] 2026-03-21 20:26:27 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:150 - ================================================================================
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:151 - [API_START] listings_geojson endpoint called
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:152 - [CONFIG] DEBUG mode: True
+[DEBUG] 2026-03-21 20:26:28 listings.models get_config:73 - [CONFIG_RETRIEVED] Current limits - Listings: 100, Grocery: 200, Clothing: 200, Metro: 100
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:159 - [CONFIG_LOADED] Time: 0.1524s | Max Listings: 100
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:172 - [DB_QUERY] Retrieved 0/0 listings | Query time: 0.1237s
+[DEBUG] 2026-03-21 20:26:28 listings.views listings_geojson:179 - [DB_STATS] Queries so far: 3
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:201 - 
+[DEBUG] 2026-03-21 20:26:28 listings.views listings_geojson:213 - [DB_STATS] Total queries executed: 3
+[DEBUG] 2026-03-21 20:26:28 listings.views listings_geojson:217 - [DB_STATS] Total query time: 0.1150s
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:221 - [API_COMPLETE] ✓ Success | Total time: 0.3144s | Features returned: 0/0 | Response size: ~0.04KB
+[INFO] 2026-03-21 20:26:28 listings.views listings_geojson:227 - ================================================================================
+[INFO] 2026-03-21 20:26:28 django.server log_message:249 - "GET /api/listings.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 20:26:28 django.server log_message:249 - "GET /api/transit.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 20:26:28 django.server log_message:249 - "GET /api/stores.geojson HTTP/1.1" 200 45
+[INFO] 2026-03-21 20:26:29 django.server log_message:249 - "GET /static/leaflet/images/layers.png HTTP/1.1" 200 696
+[INFO] 2026-03-21 20:26:30 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 3439
+[INFO] 2026-03-21 20:27:18 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 20:27:18 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 40436
+[WARNING] 2026-03-21 20:27:19 django.request log_message:249 - Not Found: /favicon.ico
+[INFO] 2026-03-21 20:29:16 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 20:29:19 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:31:51 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 10175
+[WARNING] 2026-03-21 20:32:13 django.request log_message:249 - Bad Request: /map/file/
+[WARNING] 2026-03-21 20:32:13 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 400 30
+[WARNING] 2026-03-21 20:32:48 django.request log_message:249 - Bad Request: /map/file/
+[WARNING] 2026-03-21 20:32:48 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 400 30
+[INFO] 2026-03-21 20:32:50 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 10175
+[WARNING] 2026-03-21 20:32:55 django.request log_message:249 - Bad Request: /map/file/
+[WARNING] 2026-03-21 20:32:55 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 400 30
+[INFO] 2026-03-21 20:34:30 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 10111
+[INFO] 2026-03-21 20:35:44 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 20:35:45 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 40871
+[INFO] 2026-03-21 20:35:59 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 81599
+[WARNING] 2026-03-21 20:37:20 django.request log_message:249 - Not Found: /map/fil
+[WARNING] 2026-03-21 20:37:20 django.server log_message:249 - "GET /map/fil HTTP/1.1" 404 4576
+[WARNING] 2026-03-21 20:37:20 django.request log_message:249 - Not Found: /favicon.ico
+[WARNING] 2026-03-21 20:37:20 django.server log_message:249 - "GET /favicon.ico HTTP/1.1" 404 4588
+[INFO] 2026-03-21 20:37:22 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 10111
+[INFO] 2026-03-21 20:37:41 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 20:37:41 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 39552
+[INFO] 2026-03-21 20:37:44 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 106505
+[INFO] 2026-03-21 20:47:40 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 20:47:43 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:47:47 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/loader.py changed, reloading.
+[INFO] 2026-03-21 20:47:49 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:47:52 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 20:47:54 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:48:03 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 20:48:05 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:48:12 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 20:48:15 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:48:18 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 20:48:20 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 20:56:32 django.server log_message:249 - "GET /map/file/?file=pharmacies HTTP/1.1" 200 10111
+[INFO] 2026-03-21 20:58:34 django.server log_message:249 - "GET /map/file/?file=pharmacies HTTP/1.1" 200 10111
+[INFO] 2026-03-21 20:58:36 django.server log_message:249 - "GET /map/file/?file=pharmacies HTTP/1.1" 200 10111
+[INFO] 2026-03-21 20:58:46 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 10111
+[INFO] 2026-03-21 20:59:19 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 20:59:19 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 41574
+[INFO] 2026-03-21 20:59:22 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 129465
+[INFO] 2026-03-21 21:06:54 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 21:06:57 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 21:06:58 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 21:07:00 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 21:07:05 django.utils.autoreload trigger_reload:265 - /home/lofa/dev/PropTech/newflow/views.py changed, reloading.
+[INFO] 2026-03-21 21:07:06 django.utils.autoreload run_with_reloader:681 - Watching for file changes with StatReloader
+[INFO] 2026-03-21 21:11:50 django.server log_message:249 - "GET /map/file/ HTTP/1.1" 200 19988
+[INFO] 2026-03-21 21:11:50 django.server log_message:249 - "GET /static/map-icons-master/dist/css/map-icons.css HTTP/1.1" 200 9886
+[INFO] 2026-03-21 21:13:08 django.server log_message:249 - "GET /static/map-icons-master/dist/fonts/map-icons.ttf HTTP/1.1" 200 48132
+[INFO] 2026-03-21 21:14:02 django.server log_message:249 - "POST /map/file/ HTTP/1.1" 302 0
+[INFO] 2026-03-21 21:14:02 django.server log_message:249 - "GET /map/file/configure/ HTTP/1.1" 200 38922
+[INFO] 2026-03-21 21:14:06 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 130675
+[INFO] 2026-03-21 22:34:33 django.server log_message:249 - "POST /map/file/configure/ HTTP/1.1" 200 135300

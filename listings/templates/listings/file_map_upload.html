@@ -1,0 +1,424 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Data — Map Viewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="{% static 'map-icons-master/dist/css/map-icons.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; font-family: 'Ubuntu', sans-serif; }
+        body { margin: 0; min-height: 100vh; background: #f1f5f9; display: flex; align-items: center; justify-content: center; padding: 24px; }
+
+        .card { background: white; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); width: 100%; max-width: 460px; padding: 32px; }
+
+        h1 { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+        .subtitle { font-size: 13px; color: #94a3b8; margin: 0 0 24px; }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed #e2e8f0; border-radius: 14px;
+            padding: 28px 20px; text-align: center;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 12px;
+        }
+        .drop-zone.dragover { border-color: #3b82f6; background: #eff6ff; }
+        .drop-zone.has-files { border-color: #10b981; border-style: solid; background: #f0fdf4; }
+        .drop-icon { font-size: 28px; color: #cbd5e1; margin-bottom: 8px; }
+        .drop-text { font-size: 13px; color: #94a3b8; margin: 0 0 12px; }
+
+        /* Add file button */
+        .add-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            border-radius: 8px; padding: 7px 14px;
+            font-size: 13px; color: #374151; cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .add-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .add-btn i { color: #6366f1; }
+
+        /* File cards */
+        .file-cards { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+        .file-card {
+            display: flex; align-items: center; gap: 10px;
+            background: white; border: 1px solid #e2e8f0;
+            border-radius: 10px; padding: 10px 12px;
+        }
+        .file-card-icon { font-size: 20px; color: #6366f1; flex-shrink: 0; }
+        .file-card-body { flex: 1; min-width: 0; }
+        .file-card-name { font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-card-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .file-card-meta .count { color: #10b981; font-weight: 600; }
+
+        /* Icon pick button on card */
+        .icon-pick-btn {
+            background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0; transition: border-color 0.15s, background 0.15s;
+            padding: 0;
+        }
+        .icon-pick-btn:hover { border-color: #6366f1; background: #eff6ff; }
+        .icon-pick-btn .map-icon { font-size: 18px; color: #6366f1; display: block; line-height: 1; }
+
+        .file-remove { background: none; border: none; cursor: pointer; color: #cbd5e1; font-size: 14px; padding: 4px; flex-shrink: 0; transition: color 0.15s; }
+        .file-remove:hover { color: #ef4444; }
+
+        /* Limit */
+        .field-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+        .limit-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .limit-input {
+            width: 90px; border: 1px solid #e2e8f0; border-radius: 8px;
+            padding: 7px 10px; font-size: 13px; color: #1e293b;
+            outline: none; transition: border-color 0.15s;
+        }
+        .limit-input:focus { border-color: #6366f1; }
+        .limit-hint { font-size: 12px; color: #94a3b8; }
+
+        /* Submit */
+        .submit-btn {
+            width: 100%; background: #6366f1; color: white;
+            border: none; border-radius: 10px; padding: 12px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .submit-btn:hover:not(:disabled) { background: #4f46e5; }
+        .submit-btn:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+        /* ── Icon picker modal ── */
+        .picker-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(15,23,42,0.45); backdrop-filter: blur(3px);
+            z-index: 9999; align-items: center; justify-content: center;
+        }
+        .picker-overlay.open { display: flex; }
+        .picker-card {
+            background: white; border-radius: 18px;
+            width: 540px; max-width: calc(100vw - 32px);
+            max-height: 82vh; display: flex; flex-direction: column;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .picker-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 20px 14px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
+        }
+        .picker-title { font-size: 15px; font-weight: 700; color: #1e293b; }
+        .picker-close {
+            background: #f1f5f9; border: none; border-radius: 8px;
+            width: 30px; height: 30px; cursor: pointer; font-size: 14px; color: #64748b;
+            display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+        }
+        .picker-close:hover { background: #e2e8f0; }
+        .picker-search-wrap { padding: 12px 20px; flex-shrink: 0; border-bottom: 1px solid #f1f5f9; }
+        .picker-search {
+            width: 100%; border: 1px solid #e2e8f0; border-radius: 9px;
+            padding: 8px 12px; font-size: 13px; color: #1e293b; outline: none;
+            transition: border-color 0.15s;
+        }
+        .picker-search:focus { border-color: #6366f1; }
+        .picker-grid-wrap { overflow-y: auto; padding: 14px 16px; flex: 1; }
+        .picker-grid {
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+        }
+        .icon-opt {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 10px 4px 8px; border-radius: 10px; cursor: pointer;
+            border: 2px solid transparent; transition: all 0.12s; user-select: none;
+        }
+        .icon-opt:hover { background: #f8fafc; border-color: #e2e8f0; }
+        .icon-opt.selected { background: #eff6ff; border-color: #6366f1; }
+        .icon-opt .map-icon { font-size: 22px; color: #374151; display: block; line-height: 1; }
+        .icon-opt.selected .map-icon { color: #6366f1; }
+        .icon-opt .icon-name {
+            font-size: 8.5px; color: #94a3b8; text-align: center;
+            line-height: 1.3; word-break: break-all;
+        }
+        .picker-empty { text-align: center; color: #94a3b8; font-size: 13px; padding: 32px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Map Viewer</h1>
+    <p class="subtitle">Upload JSON files to plot them on a shared interactive map.</p>
+
+    <form method="post" enctype="multipart/form-data" action="/map/file/" id="upload-form">
+
+        <!-- Drop zone -->
+        <div class="drop-zone" id="drop-zone">
+            <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <p class="drop-text">Drag & drop JSON files here, or</p>
+            <button type="button" class="add-btn" onclick="document.getElementById('file-input').click()">
+                <i class="fa-solid fa-plus"></i> Add file
+            </button>
+        </div>
+        <input id="file-input" type="file" name="files" accept=".json" multiple style="display:none;">
+
+        <!-- File cards -->
+        <div class="file-cards" id="file-cards"></div>
+
+        <!-- Limit -->
+        <div style="margin-top:16px;margin-bottom:20px;">
+            <label class="field-label">Entries per file</label>
+            <div class="limit-row">
+                <input type="number" name="limit" id="limit-input" value="10" min="1" max="1000" class="limit-input">
+                <span class="limit-hint">records shown per dataset on the map</span>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn" disabled>
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span id="submit-label">Select files to continue</span>
+        </button>
+    </form>
+</div>
+
+<!-- ── Icon picker modal ── -->
+<div class="picker-overlay" id="picker-overlay">
+    <div class="picker-card">
+        <div class="picker-header">
+            <span class="picker-title">Choose a map icon</span>
+            <button class="picker-close" onclick="closePicker()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="picker-search-wrap">
+            <input type="text" class="picker-search" id="picker-search" placeholder="Search icons…" oninput="filterIcons(this.value)">
+        </div>
+        <div class="picker-grid-wrap">
+            <div class="picker-grid" id="picker-grid"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const input     = document.getElementById('file-input');
+    const dropZone  = document.getElementById('drop-zone');
+    const fileCards = document.getElementById('file-cards');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitLbl = document.getElementById('submit-label');
+    const form      = document.getElementById('upload-form');
+
+    // Master file list
+    let dt = new DataTransfer();
+
+    // Icon choices per file index: { 0: 'map-icon-pharmacy', 1: 'map-icon-hospital', ... }
+    let iconChoices = {};
+    let pickerTarget = null;
+
+    // All available map icons (slug only — 'map-icon-' prefix added in markup)
+    const ALL_ICONS = [
+        'abseiling','accounting','airport','amusement-park','aquarium','archery','art-gallery',
+        'atm','bakery','bank','bar','beauty-salon','bicycle-store','bicycling','boating',
+        'boat-ramp','boat-tour','book-store','bowling-alley','bus-station','cafe','campground',
+        'canoe','car-dealer','car-rental','car-repair','car-wash','casino','cemetery','chairlift',
+        'church','circle','city-hall','climbing','clothing-store','compass','convenience-store',
+        'courthouse','cross-country-skiing','crosshairs','dentist','department-store','diving',
+        'doctor','electrician','electronics-store','embassy','female','finance','fire-station',
+        'fish-cleaning','fishing','fishing-pier','florist','food','funeral-home','furniture-store',
+        'gas-station','general-contractor','golf','grocery-or-supermarket','gym','hair-care',
+        'hang-gliding','hardware-store','health','hindu-temple','horse-riding','hospital',
+        'ice-fishing','ice-skating','inline-skating','insurance-agency','jet-skiing',
+        'jewelry-store','kayaking','laundry','lawyer','library','liquor-store','local-government',
+        'location-arrow','locksmith','lodging','male','map-pin','marina','mosque','motobike-trail',
+        'movie-rental','movie-theater','moving-company','museum','natural-feature','night-club',
+        'painter','park','parking','pet-store','pharmacy','physiotherapist','place-of-worship',
+        'playground','plumber','point-of-interest','police','post-box','post-office','rafting',
+        'real-estate-agency','restaurant','roofing-contractor','route','route-pin','rv-park',
+        'sailing','school','scuba-diving','shield','shopping-mall','skateboarding','skiing',
+        'sledding','snow','snowboarding','snowmobile','snow-shoeing','spa','stadium','storage',
+        'store','subway-station','surfing','swimming','synagogue','taxi-stand','tennis',
+        'trail-walking','train-station','transit-station','travel-agency','university',
+        'veterinary-care','viewing','walking','waterskiing','whale-watching','wheelchair',
+        'wind-surfing','zoo',
+    ];
+
+    // ── Utilities ────────────────────────────────────────────────────────
+    function fmtSize(bytes) {
+        if (bytes < 1024)       return bytes + ' B';
+        if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+        return (bytes/1024/1024).toFixed(1) + ' MB';
+    }
+
+    function countRecords(text) {
+        text = text.trim();
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) return parsed.length;
+            if (typeof parsed === 'object' && parsed !== null) {
+                const vals = Object.values(parsed);
+                if (vals.every(v => typeof v === 'object' && v !== null && !Array.isArray(v))) return vals.length;
+                return 1;
+            }
+            return 1;
+        } catch {
+            return text.split('\n').filter(l => { try { JSON.parse(l.trim()); return true; } catch { return false; } }).length;
+        }
+    }
+
+    // ── File card rendering ───────────────────────────────────────────────
+    function renderCards() {
+        fileCards.innerHTML = '';
+        const files = Array.from(dt.files);
+        dropZone.classList.toggle('has-files', files.length > 0);
+
+        files.forEach((file, idx) => {
+            const curIcon = iconChoices[idx] || 'map-icon-map-pin';
+            const card = document.createElement('div');
+            card.className = 'file-card';
+            card.innerHTML = `
+                <div class="file-card-icon"><i class="fa-solid fa-file-code"></i></div>
+                <div class="file-card-body">
+                    <div class="file-card-name">${file.name}</div>
+                    <div class="file-card-meta">
+                        <span>${fmtSize(file.size)}</span>
+                        &nbsp;·&nbsp;
+                        <span class="count" id="count-${idx}">counting…</span>
+                    </div>
+                </div>
+                <button type="button" class="icon-pick-btn" onclick="openPicker(${idx})" title="Choose map icon">
+                    <span class="map-icon ${curIcon}" id="card-icon-${idx}"></span>
+                </button>
+                <button type="button" class="file-remove" onclick="removeFile(${idx})" title="Remove">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>`;
+            fileCards.appendChild(card);
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                const n = countRecords(e.target.result);
+                const el = document.getElementById(`count-${idx}`);
+                if (el) el.textContent = `${n.toLocaleString()} record${n !== 1 ? 's' : ''}`;
+            };
+            reader.readAsText(file);
+        });
+
+        // Sync file input
+        input.files = dt.files;
+
+        // Rebuild hidden icon inputs
+        form.querySelectorAll('input[name^="icon_"]').forEach(el => el.remove());
+        files.forEach((_, idx) => {
+            const hidden = document.createElement('input');
+            hidden.type  = 'hidden';
+            hidden.name  = `icon_${idx}`;
+            hidden.value = iconChoices[idx] || 'map-icon-map-pin';
+            form.appendChild(hidden);
+        });
+
+        // Submit button
+        if (files.length > 0) {
+            submitBtn.disabled = false;
+            submitLbl.textContent = files.length === 1
+                ? `Generate map from ${files[0].name.replace('.json', '')}`
+                : `Generate map from ${files.length} files`;
+        } else {
+            submitBtn.disabled = true;
+            submitLbl.textContent = 'Select files to continue';
+        }
+    }
+
+    function addFiles(newFiles) {
+        Array.from(newFiles)
+            .filter(f => f.name.endsWith('.json'))
+            .forEach(f => {
+                if (!Array.from(dt.files).some(x => x.name === f.name)) {
+                    dt.items.add(f);
+                }
+            });
+        renderCards();
+    }
+
+    function removeFile(idx) {
+        const files = Array.from(dt.files);
+        dt = new DataTransfer();
+        const newChoices = {};
+        let newIdx = 0;
+        files.forEach((f, i) => {
+            if (i !== idx) {
+                newChoices[newIdx] = iconChoices[i] || 'map-icon-map-pin';
+                dt.items.add(f);
+                newIdx++;
+            }
+        });
+        iconChoices = newChoices;
+        renderCards();
+    }
+
+    input.addEventListener('change', () => { addFiles(input.files); });
+    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        addFiles(e.dataTransfer.files);
+    });
+
+    // ── Icon picker modal ─────────────────────────────────────────────────
+    const overlay   = document.getElementById('picker-overlay');
+    const pickerGrid= document.getElementById('picker-grid');
+    const pickerSearch = document.getElementById('picker-search');
+
+    function buildPickerGrid(filter) {
+        const q = (filter || '').toLowerCase().trim();
+        const icons = q ? ALL_ICONS.filter(n => n.includes(q)) : ALL_ICONS;
+        const curSel = pickerTarget !== null ? (iconChoices[pickerTarget] || 'map-icon-map-pin') : '';
+
+        if (icons.length === 0) {
+            pickerGrid.innerHTML = `<div class="picker-empty" style="grid-column:1/-1;">No icons match "${q}"</div>`;
+            return;
+        }
+
+        pickerGrid.innerHTML = icons.map(slug => {
+            const cls = `map-icon-${slug}`;
+            const sel = cls === curSel ? ' selected' : '';
+            return `<div class="icon-opt${sel}" onclick="selectIcon('${cls}')" title="${slug}">
+                        <span class="map-icon ${cls}"></span>
+                        <span class="icon-name">${slug}</span>
+                    </div>`;
+        }).join('');
+    }
+
+    function openPicker(idx) {
+        pickerTarget = idx;
+        pickerSearch.value = '';
+        buildPickerGrid('');
+        overlay.classList.add('open');
+        pickerSearch.focus();
+    }
+
+    function closePicker() {
+        overlay.classList.remove('open');
+        pickerTarget = null;
+    }
+
+    function selectIcon(cls) {
+        if (pickerTarget === null) return;
+        iconChoices[pickerTarget] = cls;
+        // Update hidden input immediately
+        const hidden = form.querySelector(`input[name="icon_${pickerTarget}"]`);
+        if (hidden) hidden.value = cls;
+        // Update card icon preview
+        const cardIcon = document.getElementById(`card-icon-${pickerTarget}`);
+        if (cardIcon) {
+            // Remove all map-icon-* classes, add new one
+            cardIcon.className.split(' ')
+                .filter(c => c.startsWith('map-icon-') && c !== 'map-icon')
+                .forEach(c => cardIcon.classList.remove(c));
+            cardIcon.classList.add(cls);
+        }
+        closePicker();
+    }
+
+    function filterIcons(val) { buildPickerGrid(val); }
+
+    // Close on overlay click outside card
+    overlay.addEventListener('click', e => { if (e.target === overlay) closePicker(); });
+
+    // Close on Escape
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePicker(); });
+</script>
+
+</body>
+</html>

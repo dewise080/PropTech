@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ query }}</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="{% static 'map-icons-master/dist/css/map-icons.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Ubuntu', sans-serif; }
+        #map { width: 100%; height: 100vh; z-index: 1; }
+
+        /* Legend */
+        .legend {
+            position: absolute; bottom: 30px; left: 10px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-height: 70vh; width: 230px;
+            overflow: hidden; display: flex; flex-direction: column; gap: 10px;
+        }
+        .legend-header { display: flex; align-items: center; justify-content: space-between; }
+        .legend-title  { font-weight: 700; font-size: 15px; color: #333; margin: 0; }
+        .legend-toggle { border: 1px solid #e5e7eb; background: #f8fafc; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; color: #374151; }
+        .legend-body   { overflow-y: auto; }
+        .legend-grid   { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .legend-item   { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #374151; }
+        .legend-chip   { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 3px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .legend-chip .map-icon { font-size: 14px; color: white; display: block; line-height: 1; }
+
+        /* Map marker pin */
+        .mi-pin { display: flex; flex-direction: column; align-items: center; }
+        .mi-pin-circle {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 2.5px solid white;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+        }
+        .mi-pin-circle .map-icon { font-size: 19px; color: white; display: block; line-height: 1; }
+        .mi-pin-tip { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; margin-top: -1px; }
+        .legend-footer { border-top: 1px solid #e5e7eb; padding-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .legend.collapsed .legend-body, .legend.collapsed .legend-footer { display: none; }
+        .legend.collapsed { padding: 12px 15px; }
+
+        /* ── Popup wrapper ── */
+        .leaflet-popup-content-wrapper {
+            border-radius: 18px !important;
+            box-shadow: 0 14px 35px rgba(0,0,0,0.12) !important;
+            overflow: hidden;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: 300px !important;
+            font-family: 'Ubuntu', sans-serif;
+            color: #111827;
+        }
+        .popup-inner { padding: 14px; }
+
+        /* Title */
+        .popup-title { margin-bottom: 8px; }
+        .popup-title a {
+            display: inline-block; font-size: 17px; font-weight: 700;
+            line-height: 1.25; color: #111827; text-decoration: none;
+        }
+        .popup-title a:hover { color: #2563eb; }
+        .popup-title span {
+            display: inline-block; font-size: 17px; font-weight: 700;
+            line-height: 1.25; color: #111827;
+        }
+
+        /* Meta row: category badge + distance */
+        .popup-meta {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 12px; margin-bottom: 12px;
+        }
+        .popup-category-badge {
+            display: inline-flex; align-items: center;
+            padding: 5px 10px; border-radius: 999px;
+            background: #f3f4f6; color: #374151;
+            font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .popup-distance { font-size: 12px; color: #6b7280; white-space: nowrap; }
+        .popup-distance strong { color: #111827; font-weight: 700; }
+
+        /* Thumbnail with rating chip */
+        .popup-image-wrap { position: relative; margin-bottom: 12px; }
+        .popup-image-wrap img {
+            width: 100%; height: 150px; object-fit: cover;
+            display: block; border-radius: 12px;
+        }
+        .popup-rating-chip {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(4px);
+            border-radius: 999px; padding: 5px 10px;
+            font-size: 12px; font-weight: 700; color: #111827;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        /* Icon bar — round coloured buttons */
+        .popup-icon-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+        .icon-btn {
+            width: 36px; height: 36px; border-radius: 999px;
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none; flex-shrink: 0;
+            transition: opacity 0.15s; cursor: pointer;
+        }
+        .icon-btn:hover { opacity: 0.75; }
+        .icon-btn i { font-size: 15px; }
+
+        /* Address tooltip */
+        .addr-wrap { position: relative; }
+        .addr-tooltip {
+            display: none; position: absolute;
+            bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+            background: #1f2937; color: #f9fafb;
+            font-size: 11px; line-height: 1.5;
+            padding: 6px 10px; border-radius: 7px;
+            width: 190px; white-space: normal;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            z-index: 9999; pointer-events: none;
+        }
+        .addr-tooltip::after {
+            content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            border: 5px solid transparent; border-top-color: #1f2937;
+        }
+        .addr-wrap:hover .addr-tooltip,
+        .addr-wrap.open  .addr-tooltip { display: block; }
+
+        /* Reviews */
+        .popup-reviews-section { border-top: 1px solid #f1f5f9; padding-top: 10px; }
+        .review-summary { font-size: 12px; color: #4b5563; margin-bottom: 6px; }
+        .reviews-toggle-btn {
+            background: none; border: none; padding: 0;
+            font-size: 11px; color: #2563eb; cursor: pointer;
+            text-decoration: underline; margin-bottom: 8px; display: block;
+        }
+        .popup-review-item {
+            display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;
+        }
+        .popup-review-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            object-fit: cover; flex-shrink: 0;
+        }
+        .popup-review-fallback {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #e2e8f0; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; color: #94a3b8; font-weight: 700;
+        }
+        .review-header {
+            display: flex; justify-content: space-between; align-items: center; gap: 4px;
+            margin-bottom: 2px;
+        }
+        .review-name {
+            font-size: 12px; font-weight: 600; color: #1f2937;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .review-score { font-size: 11px; color: #f59e0b; flex-shrink: 0; }
+        .review-text  { font-size: 11px; color: #6b7280; line-height: 1.45; }
+
+        /* misc */
+        .popup-info { font-size: 12px; color: #6b7280; margin-bottom: 3px; }
+
+        /* You are here pin */
+        @keyframes origin-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+            50%       { box-shadow: 0 0 0 10px rgba(99,102,241,0); }
+        }
+        .origin-dot {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #6366f1; border: 3px solid white;
+            box-shadow: 0 0 0 0 rgba(99,102,241,0.5);
+            animation: origin-pulse 2s ease-in-out infinite;
+        }
+
+        /* Origin popup overrides */
+        .origin-popup .leaflet-popup-content-wrapper {
+            border-radius: 16px !important;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 1.5px solid #e0e7ff;
+            box-shadow: 0 16px 40px rgba(99,102,241,0.18) !important;
+        }
+        .origin-popup .leaflet-popup-content {
+            margin: 0 !important;
+            width: 260px !important;
+        }
+        .origin-popup .leaflet-popup-tip { background: white; }
+
+        /* Origin popup inner */
+        .op-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            padding: 14px 16px 12px;
+        }
+        .op-header-title { font-size: 13px; font-weight: 700; color: white; margin-bottom: 2px; }
+        .op-header-label { font-size: 11px; color: rgba(255,255,255,0.75); }
+        .op-header-coords { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+        .op-body { padding: 12px 14px; }
+        .op-section-title {
+            font-size: 9.5px; font-weight: 700; color: #94a3b8;
+            letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px;
+        }
+        .op-row {
+            display: flex; align-items: center; gap: 9px; margin-bottom: 9px;
+        }
+        .op-row:last-child { margin-bottom: 0; }
+        .op-icon {
+            width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .op-icon .map-icon { font-size: 15px; color: white; display: block; line-height: 1; }
+        .op-info { flex: 1; min-width: 0; }
+        .op-name {
+            font-size: 12px; font-weight: 600; color: #1e293b;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .op-meta { font-size: 10px; color: #94a3b8; margin-top: 1px; }
+        .op-dist { color: #6366f1; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="legend" id="legend">
+        <div class="legend-header">
+            <div class="legend-title">{{ query }}</div>
+            <button class="legend-toggle" id="legendToggle">Hide</button>
+        </div>
+        <div class="legend-body">
+            <div class="legend-grid" id="legendGrid"></div>
+        </div>
+        <div class="legend-footer">
+            <img src="https://explore.lotfinity.tech/static/img/logo22.gif" alt="Lotfinity"
+                 style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;">
+            <a href="https://explore.lotfinity.tech/" target="_blank" rel="noopener noreferrer"
+               style="color: #620c71ff; text-decoration: none; font-weight: 600;">Lotfinity</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    {{ amenities_data|json_script:"amenities-data" }}
+    {{ field_config|json_script:"field-config-data" }}
+    {{ origin_pins|json_script:"origin-pins-data" }}
+    {{ icon_choices|json_script:"icon-choices-data" }}
+    <script>
+        const centerLat   = {{ center_lat }};
+        const centerLng   = {{ center_lng }};
+        const amenities   = JSON.parse(document.getElementById('amenities-data').textContent);
+        const fieldConfig = JSON.parse(document.getElementById('field-config-data').textContent);
+        const originPins  = JSON.parse(document.getElementById('origin-pins-data').textContent);
+        const iconChoices = JSON.parse(document.getElementById('icon-choices-data').textContent);
+
+        // Palette for dataset layers
+        const PALETTE = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+
+        const map = L.map('map').setView([centerLat, centerLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors', maxZoom: 19
+        }).addTo(map);
+
+        const MODIFIERS = new Set(['link', 'phone', 'address', 'web_site', 'thumbnail',
+                                   'review_count', 'review_rating', 'user_reviews']);
+
+        // Global — called from popup button onclick
+        function toggleReviews(btn) {
+            const box = document.getElementById(btn.dataset.target);
+            const hidden = box.style.display === 'none';
+            box.style.display = hidden ? 'block' : 'none';
+            btn.textContent = hidden ? 'Hide reviews ▴' : 'Show reviews ▾';
+        }
+
+        function buildPopup(item, type) {
+            const distanceM  = Math.round(item.distance_m);
+            const distanceKm = (item.distance_m / 1000).toFixed(2);
+            const distText   = distanceM < 1000 ? `${distanceM}m` : `${distanceKm}km`;
+            const name       = item.name || '';
+            const link       = fieldConfig.includes('link') && item.link ? item.link : null;
+
+            let html = '<div class="popup-inner">';
+
+            // ── Title ─────────────────────────────────────────────────
+            html += `<div class="popup-title">${
+                link ? `<a href="${link}" target="_blank" rel="noopener noreferrer">${name}</a>`
+                     : `<span>${name}</span>`
+            }</div>`;
+
+            // ── Meta: category pill + distance ────────────────────────
+            const cat  = fieldConfig.includes('category') ? (item.category || '') : '';
+            const dist = fieldConfig.includes('distance') ? distText : '';
+            if (cat || dist) {
+                html += `<div class="popup-meta">
+                    ${cat  ? `<span class="popup-category-badge">${cat}</span>` : '<span></span>'}
+                    ${dist ? `<span class="popup-distance">📍 <strong>${dist}</strong> away</span>` : ''}
+                </div>`;
+            }
+
+            // ── Thumbnail with rating chip overlay ────────────────────
+            if (fieldConfig.includes('thumbnail') && item.thumbnail) {
+                const src = String(item.thumbnail).startsWith('//') ? 'https:' + item.thumbnail : item.thumbnail;
+                const ratingChip = item.review_rating
+                    ? `<div class="popup-rating-chip">⭐ ${item.review_rating}${item.review_count ? ` · ${item.review_count}` : ''}</div>`
+                    : '';
+                html += `<div class="popup-image-wrap"><img src="${src}" alt="${name}">${ratingChip}</div>`;
+            }
+
+            // ── Icon bar — round coloured buttons ─────────────────────
+            const phone   = fieldConfig.includes('phone')    && item.phone    ? item.phone    : null;
+            const addr    = fieldConfig.includes('address')  && item.address  ? item.address  : null;
+            const website = fieldConfig.includes('web_site') && item.web_site ? item.web_site : null;
+            if (phone || addr || website) {
+                const digits = phone ? String(phone).replace(/\D/g, '') : '';
+                let icons = '';
+                if (phone) {
+                    icons += `<a href="tel:+${digits}" class="icon-btn" style="background:#e0f2fe;" title="Call">
+                                  <i class="fa-solid fa-phone" style="color:#0ea5e9;"></i></a>
+                              <a href="https://wa.me/${digits}" target="_blank" rel="noopener noreferrer"
+                                 class="icon-btn" style="background:#dcfce7;" title="WhatsApp">
+                                  <i class="fa-brands fa-whatsapp" style="color:#16a34a;"></i></a>`;
+                }
+                if (addr) {
+                    icons += `<span class="icon-btn addr-wrap" style="background:#fee2e2;"
+                                    onclick="this.classList.toggle('open')" title="Address">
+                                  <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i>
+                                  <span class="addr-tooltip">${addr}</span></span>`;
+                }
+                if (website) {
+                    icons += `<a href="${website}" target="_blank" rel="noopener noreferrer"
+                                 class="icon-btn" style="background:#ede9fe;" title="Website">
+                                  <i class="fa-solid fa-globe" style="color:#6366f1;"></i></a>`;
+                }
+                html += `<div class="popup-icon-bar">${icons}</div>`;
+            }
+
+            // ── Optional extra fields ─────────────────────────────────
+            const handled = new Set(['title','link','category','distance','thumbnail',
+                                     'review_rating','review_count','phone','address','web_site','user_reviews']);
+            fieldConfig.forEach(f => {
+                if (handled.has(f) || MODIFIERS.has(f)) return;
+                const val = (item[f] !== undefined && item[f] !== null && item[f] !== '') ? item[f] : '—';
+                const label = f.charAt(0).toUpperCase() + f.slice(1).replace(/_/g, ' ');
+                html += `<div class="popup-info">${label}: <strong>${val}</strong></div>`;
+            });
+
+            // ── Reviews ───────────────────────────────────────────────
+            const reviews     = Array.isArray(item.user_reviews) ? item.user_reviews : [];
+            const reviewCount = item.review_count;
+            const reviewRating= item.review_rating;
+
+            if (reviewCount || reviews.length > 0) {
+                const uid = `rev-${item.id}-${Math.random().toString(36).slice(2,7)}`;
+                html += `<div class="popup-reviews-section">`;
+
+                if (reviewCount) {
+                    html += `<div class="review-summary">
+                        <strong>${reviewCount}</strong> people gave it a <strong>⭐ ${reviewRating || ''}</strong>
+                    </div>`;
+                }
+
+                if (reviews.length > 0) {
+                    html += `<button class="reviews-toggle-btn" onclick="toggleReviews(this)"
+                                     data-target="${uid}">Show reviews ▾</button>
+                             <div id="${uid}" style="display:none;">`;
+
+                    reviews.forEach(r => {
+                        const picRaw = r.ProfilePicture || r.profile_picture || r.avatar || '';
+                        const pic    = picRaw ? (picRaw.startsWith('//') ? 'https:' + picRaw : picRaw) : '';
+                        const rName  = r.Name || r.name || r.author || 'Anonymous';
+                        const rating = r.Rating || r.rating || '';
+                        const text   = r.Description || r.description || r.text || '';
+                        const snippet= text.length > 90 ? text.slice(0, 90) + '…' : text;
+                        const avatar = pic
+                            ? `<img src="${pic}" class="popup-review-avatar"
+                                    onerror="this.outerHTML='<div class=&quot;popup-review-fallback&quot;>${rName.charAt(0).toUpperCase()}</div>'">`
+                            : `<div class="popup-review-fallback">${rName.charAt(0).toUpperCase()}</div>`;
+
+                        html += `<div class="popup-review-item">
+                            ${avatar}
+                            <div style="flex:1;min-width:0;">
+                                <div class="review-header">
+                                    <span class="review-name">${rName}</span>
+                                    ${rating ? `<span class="review-score">★ ${rating}</span>` : ''}
+                                </div>
+                                ${snippet ? `<div class="review-text">${snippet}</div>` : ''}
+                            </div>
+                        </div>`;
+                    });
+
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
+
+            html += '</div>'; // .popup-inner
+            return html;
+        }
+
+        // ── Haversine for origin popup nearest computation ────────────
+        function haversineM(lat1, lng1, lat2, lng2) {
+            const R = 6_371_000;
+            const toRad = d => d * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function fmtDist(m) {
+            return m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(2)} km`;
+        }
+
+        function buildOriginPopup(pin) {
+            // Find nearest item per dataset to this pin
+            const nearest = [];
+            Object.keys(amenities).forEach((type, idx) => {
+                const items = amenities[type];
+                if (!items || items.length === 0) return;
+                let minDist = Infinity, minItem = null;
+                items.forEach(item => {
+                    const d = haversineM(pin.lat, pin.lng, item.lat, item.lng);
+                    if (d < minDist) { minDist = d; minItem = item; }
+                });
+                if (minItem) {
+                    nearest.push({
+                        type,
+                        item: minItem,
+                        dist: minDist,
+                        color: PALETTE[idx % PALETTE.length],
+                        iconCls: iconChoices[type] || 'map-icon-map-pin',
+                    });
+                }
+            });
+            nearest.sort((a, b) => a.dist - b.dist);
+
+            const typeLabel = t => t.charAt(0).toUpperCase() + t.slice(1).replace(/_/g, ' ');
+
+            const rows = nearest.map(n => `
+                <div class="op-row">
+                    <div class="op-icon" style="background:${n.color};">
+                        <span class="map-icon ${n.iconCls}"></span>
+                    </div>
+                    <div class="op-info">
+                        <div class="op-name">${n.item.name}</div>
+                        <div class="op-meta">${typeLabel(n.type)} · <span class="op-dist">${fmtDist(n.dist)}</span></div>
+                    </div>
+                </div>`).join('');
+
+            return `
+                <div class="op-header">
+                    <div class="op-header-title">📍 You are here</div>
+                    <div class="op-header-label">${pin.label}</div>
+                    <div class="op-header-coords">${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}</div>
+                </div>
+                <div class="op-body">
+                    <div class="op-section-title">Nearest from each list</div>
+                    ${rows || '<div style="font-size:11px;color:#94a3b8;">No data loaded</div>'}
+                </div>`;
+        }
+
+        // ── "You are here" origin pins ───────────────────────────────
+        originPins.forEach(pin => {
+            const icon = L.divIcon({
+                html: `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                           <div style="background:white;border:1.5px solid #6366f1;border-radius:20px;
+                                       padding:3px 9px;font-size:11px;font-weight:700;color:#6366f1;
+                                       box-shadow:0 2px 8px rgba(0,0,0,0.15);white-space:nowrap;">
+                               📍 You are here
+                           </div>
+                           <div class="origin-dot"></div>
+                       </div>`,
+                className: '',
+                iconSize:   [120, 52],
+                iconAnchor: [60, 52],
+                popupAnchor:[0, -54],
+            });
+            L.marker([pin.lat, pin.lng], { icon, zIndexOffset: 1000 })
+                .addTo(map)
+                .bindPopup(buildOriginPopup(pin), { className: 'origin-popup', maxWidth: 280 });
+        });
+
+        // ── Plot markers + build legend ──────────────────────────────
+        const bounds = [];
+        const legendGrid = document.getElementById('legendGrid');
+
+        Object.keys(amenities).forEach((type, idx) => {
+            const items = amenities[type];
+            if (!items || items.length === 0) return;
+
+            const color   = PALETTE[idx % PALETTE.length];
+            const label   = type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+            const iconCls = iconChoices[type] || 'map-icon-map-pin';
+
+            // Legend entry
+            legendGrid.insertAdjacentHTML('beforeend', `
+                <div class="legend-item">
+                    <div class="legend-chip" style="background:${color};">
+                        <span class="map-icon ${iconCls}"></span>
+                    </div>
+                    <span>${label} (${items.length})</span>
+                </div>
+            `);
+
+            items.forEach(item => {
+                const markerIcon = L.divIcon({
+                    html: `<div class="mi-pin">
+                               <div class="mi-pin-circle" style="background:${color};">
+                                   <span class="map-icon ${iconCls}"></span>
+                               </div>
+                               <div class="mi-pin-tip" style="border-top:10px solid ${color};"></div>
+                           </div>`,
+                    className: '',
+                    iconSize: [42, 48],
+                    iconAnchor: [21, 48],
+                    popupAnchor: [0, -50],
+                });
+
+                L.marker([item.lat, item.lng], { icon: markerIcon })
+                    .addTo(map)
+                    .bindPopup(buildPopup(item, type));
+
+                bounds.push([item.lat, item.lng]);
+            });
+        });
+
+        // Fit map to all markers
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+
+        // Legend toggle
+        const legend = document.getElementById('legend');
+        document.getElementById('legendToggle').addEventListener('click', () => {
+            legend.classList.toggle('collapsed');
+            document.getElementById('legendToggle').textContent =
+                legend.classList.contains('collapsed') ? 'Show' : 'Hide';
+        });
+    </script>
+</body>
+</html>
